@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kaddie-sessions
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kaddie-sessions
+subjects:
+  - kind: ServiceAccount
+    name: kaddie-sessions
+    namespace: kaddie-system

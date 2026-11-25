@@ -1,0 +1,15 @@
+apiVersion: kaddie.org/v1alpha1
+kind: SRETrigger
+metadata:
+  name: proposal-outcome
+spec:
+  mode: Active
+  watch:
+    apiVersion: kaddie.org/v1alpha1
+    resource: sreproposals
+    when: "(has(object.status.execution) && has(object.status.execution.phase)) || (has(object.status.approval) && object.status.approval.phase == 'Dismissed') || (has(object.status.render) && object.status.render.phase == 'Failed') || (has(object.status.pr) && object.status.pr.state in ['Merged', 'Closed']) || has(object.status.pushFailure)"
+  session:
+    resume: ProposalSession
+    goal: "A proposal from this session has an outcome, was dismissed by an operator, or couldn't be pushed, so no PR was opened. Check whether the problem is resolved. If it isn't, investigate further; if it couldn't be pushed, read the reason before redrafting."
+  controls:
+    cooldown: 10m

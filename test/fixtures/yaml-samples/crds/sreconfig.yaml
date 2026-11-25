@@ -1,0 +1,38 @@
+apiVersion: kaddie.org/v1alpha1
+kind: SREConfig
+metadata:
+  name: default
+spec:
+  mode: Enabled
+  reason: "Enabled after the platform team's review"
+  changedBy: bob@example.com
+  triggersPaused: false
+  api:
+    enabled: true
+  repositories:
+    - name: platform-config
+      url: https://git.example.com/org/platform-config.git
+      targetBranch: main
+      readablePaths:
+        - "apps/**"
+        - "charts/**"
+      editablePaths:
+        - "apps/*/overlays/*/kustomization.yaml"
+        - "apps/*/overlays/*/*-patch.yaml"
+        - "apps/*/values-*.yaml"
+      editableExtensions: [".yaml", ".yml", ".json"]
+      protectedPaths:
+        - "apps/*/base/**"
+      pr:
+        branchPrefix: kaddie/
+        minRequiredApprovals: 2
+        labels: [kaddie-agent]
+        includeJustification: true
+        attestations: []
+      deployTargets:
+        - name: payments-prod
+          trackedRevision: main
+          path: apps/payments/overlays/prod
+          tool: Kustomize
+          destinationNamespace: payments
+          local: true

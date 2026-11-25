@@ -1,0 +1,9 @@
+apiVersion: kaddie.org/v1alpha1
+kind: SREConfig
+metadata:
+  name: default
+spec:
+  mode: ExecutionPaused
+  reason: "INC-123: investigating unexpected scale-down in payments"
+  changedBy: bob@example.com
+  triggersPaused: true

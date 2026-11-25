@@ -1,0 +1,25 @@
+apiVersion: kaddie.org/v1alpha1
+kind: SRETrigger
+metadata:
+  name: rollout-stuck
+spec:
+  mode: Active
+  watch:
+    apiVersion: apps/v1
+    resource: deployments
+    namespaceSelector: {}
+    when: "object.status.conditions.exists(c, c.type == 'Progressing' && c.reason == 'ProgressDeadlineExceeded')"
+    for: 5m
+  session:
+    goal: "Diagnose why this rollout is stuck and propose a fix if one is safe."
+    resume: None
+  controls:
+    cooldown: 1h
+status:
+  lastFired: "2026-11-11T07:42:10Z"
+  instances: 4
+  firingInstances: 1
+  firedToday: 3
+  suppressedToday: { Cooldown: 2, Budget: 0 }
+  conditions:
+    - { type: Valid, status: "True" }
