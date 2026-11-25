@@ -1,0 +1,17 @@
+# Structured authentication config trusting the mock OIDC issuer, used by
+# kind-latest.yaml. kind-up.sh indents the issuer CA into ${CA_PEM}.
+apiVersion: apiserver.config.k8s.io/v1
+kind: AuthenticationConfiguration
+jwt:
+  - issuer:
+      url: https://kaddie-oidc:8443
+      audiences: [kaddie-ui]
+      certificateAuthority: |
+${CA_PEM}
+    claimMappings:
+      username:
+        claim: email
+        prefix: "oidc:"
+      groups:
+        claim: groups
+        prefix: "oidc:"

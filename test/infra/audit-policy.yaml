@@ -1,0 +1,20 @@
+# Audit policy for the e2e kind cluster. It follows base §9.3's suggestion:
+# full request and response for every Kaddie custom resource and for RBAC,
+# admission and CRD writes; metadata for every other write. Tests read the
+# log to prove who wrote what (T9, GT6, GT40).
+apiVersion: audit.k8s.io/v1
+kind: Policy
+omitStages: [RequestReceived]
+rules:
+  - level: RequestResponse
+    resources:
+      - group: kaddie.org
+  - level: RequestResponse
+    verbs: [create, update, patch, delete, deletecollection]
+    resources:
+      - group: rbac.authorization.k8s.io
+      - group: admissionregistration.k8s.io
+      - group: apiextensions.k8s.io
+  - level: Metadata
+    verbs: [create, update, patch, delete, deletecollection]
+  - level: None
