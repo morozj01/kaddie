@@ -1,0 +1,9 @@
+{{- include "kaddie.versionGate" . -}}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "kaddie.namespace" . }}
+  labels:
+    {{- include "kaddie.labels" . | nindent 4 }}
+    # Pod Security Admission rejects any pod here that isn't restricted-compliant.
+    pod-security.kubernetes.io/enforce: restricted

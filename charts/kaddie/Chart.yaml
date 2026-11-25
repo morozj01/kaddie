@@ -1,0 +1,13 @@
+apiVersion: v2
+name: kaddie
+description: Kaddie, the Agentic SRE Operator. An LLM investigates cluster problems and drafts proposals; humans review and execute them with their own credentials.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+# SelfSubjectReview, which kaddie-ui uses to identify the viewer, is GA from
+# 1.28 (base §13). templates/_version_gate.tpl repeats the check with a
+# message for renderers that pass --kube-version.
+kubeVersion: ">=1.28.0-0"
+home: https://github.com/morozj01/kaddie
+sources:
+  - https://github.com/morozj01/kaddie

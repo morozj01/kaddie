@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "global": { "type": "object" },
+    "gitops": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "reconcilerAdapters": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["argocd"] },
+          "uniqueItems": true
+        }
+      }
+    },
+    "rbac": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operators": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "name"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": { "type": "string", "enum": ["User", "Group", "ServiceAccount"] },
+              "name": { "type": "string", "minLength": 1 },
+              "apiGroup": { "type": "string" },
+              "namespace": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "agentRead": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ownership": { "type": "string", "enum": ["cluster"] },
+        "extraResources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["group", "resource"],
+            "additionalProperties": false,
+            "properties": {
+              "group": { "type": "string" },
+              "resource": { "type": "string", "minLength": 1, "pattern": "^[a-z0-9.-]+(/[a-z0-9.-]+)?$" }
+            }
+          }
+        }
+      }
+    },
+    "proposals": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "quota": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

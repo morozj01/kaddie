@@ -1,0 +1,57 @@
+Kaddie {{ .Chart.AppVersion }} is installed in namespace kaddie-system.
+
+The system is Halted. The chart never creates SREConfig/default, and a missing
+SREConfig means Halted for every component. When you are ready to enable it:
+
+  kubectl apply -f - <<'YAML'
+  apiVersion: kaddie.org/v1alpha1
+  kind: SREConfig
+  metadata:
+    name: default
+  spec:
+    mode: Enabled
+    reason: "Enabled after review"
+  YAML
+
+Helm doesn't own SREConfig/default: upgrades, uninstalls and reinstalls leave
+it, and its settings, untouched.
+{{- if not .Values.rbac.operators }}
+
+No human is bound to the kaddie-operator ClusterRole (rbac.operators is
+empty). Bind your operators with rbac.operators or your own
+ClusterRoleBinding.
+{{- end }}
+
+Review what every ServiceAccount can do:
+{{- range $name := include "kaddie.components" . | fromJsonArray }}
+  kubectl auth can-i --list --as=system:serviceaccount:kaddie-system:{{ $name }}
+{{- end }}
+{{- $existing := lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" "kaddie-agent-read" }}
+{{- if and $existing .Release.IsUpgrade }}
+{{- $missing := list }}
+{{- range $rule := include "kaddie.agentRead.allowlist" . | fromYamlArray }}
+{{- range $group := $rule.apiGroups }}
+{{- range $resource := $rule.resources }}
+{{- $found := false }}
+{{- range $live := $existing.rules }}
+{{- if and (has $group ($live.apiGroups | default list)) (has $resource ($live.resources | default list)) }}
+{{- $found = true }}
+{{- end }}
+{{- end }}
+{{- if not $found }}
+{{- $missing = append $missing (printf "%s/%s" (default "core" $group) $resource) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+kaddie-agent-read is owned by the cluster (agentRead.ownership: cluster), so
+this upgrade left its rules as they are.
+{{- if $missing }} The new chart ships read access to
+these kinds, which the live role lacks; add them by hand if you want them:
+{{- range $missing }}
+  - {{ . }}
+{{- end }}
+{{- else }} It already has every entry of the shipped allowlist.
+{{- end }}
+{{- end }}

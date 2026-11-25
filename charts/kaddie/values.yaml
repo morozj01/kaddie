@@ -1,0 +1,36 @@
+# Default values for the kaddie chart.
+#
+# The chart never creates SREConfig/default. A fresh install has none, which
+# every component treats as Halted; the install notes print the command that
+# creates it (base §4.3).
+
+gitops:
+  # Adds the GitOps write path: kaddie-git-writer and kaddie-renderer, their
+  # ServiceAccounts and roles, and the reconciler-read rules (GitOps spec §1.2).
+  enabled: false
+  # Reconciler adapters whose configuration kinds the reconciler-read rule
+  # template renders. Argo CD is the first adapter (implementation plan T12.3).
+  reconcilerAdapters:
+    - argocd
+
+rbac:
+  # Subjects bound to the kaddie-operator ClusterRole, for example
+  #   - kind: Group
+  #     apiGroup: rbac.authorization.k8s.io
+  #     name: oncall-sre
+  # Empty by default: a fresh install binds no human (base §5.2).
+  operators: []
+
+agentRead:
+  # Who owns the rules of the kaddie-agent-read ClusterRole (base §5.4.2).
+  # "cluster": the chart renders the role on first install only, annotated
+  # helm.sh/resource-policy: keep, so rules added later survive upgrades and
+  # uninstall. "git" ownership arrives with implementation plan T7.2.
+  ownership: cluster
+  # Extra read rules added at install time, as {group, resource} pairs,
+  # for example {group: cert-manager.io, resource: certificates}.
+  extraResources: []
+
+proposals:
+  # Hard limit on stored SREProposal objects in kaddie-system (base §6.1).
+  quota: 1000
