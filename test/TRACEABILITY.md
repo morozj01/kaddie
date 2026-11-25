@@ -16,20 +16,20 @@ Rules the checker enforces:
   `TestCRD_T8_...`) is listed in that ID's row.
 - An ID claimed by a task in "Tasks done" is not `unclaimed`.
 
-Tasks done: T0.1
+Tasks done: T0.1, T0.2, T0.3, T1.1, T1.2, T1.3, T1.4, T1.5, T1.6
 
 | ID | Spec | Summary | Planned task(s) | Release | Implemented by |
 | --- | --- | --- | --- | --- | --- |
-| T1 | base | kaddie-tools and kaddie-agent: can-i on `secrets` (get/list/watch) = no for every namespace. | T1.6 | v1 | unclaimed |
-| T2 | base | kaddie-tools and kaddie-agent: no on `pods/exec`, `pods/attach`, `pods/portforward`, `pods/proxy`, `service... | T1.6 | v1 | unclaimed |
-| T3 | base | kaddie-agent is bound to no role: its `can-i --list` contains only the Kubernetes-default self-review permi... | T1.6 | v1 | unclaimed |
-| T4 | base | No SRE service identity (agent, and the harness, git writer, renderer and UI identities) has a forbidden pe... | T1.3, T1.6 | v1 | unclaimed |
-| T5 | base | `kaddie-operator` grants no permission outside the `kaddie.org` group except `get`/`update`/`patch` on the... | T1.6 | v1 | unclaimed |
-| T6 | base | `kaddie-system` rejects `SREProposal` creates beyond its object quota, and an `SREProposal` in any other na... | T1.2, T2.5 | v1 | unclaimed |
-| T7 | base | Creating an `SREProposal` as an identity without `create` on `sreproposals` → denied by RBAC. | T1.4 | v1 | unclaimed |
-| T8 | base | Updating `SREProposal.spec`, even as cluster-admin → denied. | T1.4 | v1 | unclaimed |
-| T9 | base | A status write by an identity without `update` on `sreproposals/status` → denied by RBAC. | T1.5 | v1 | unclaimed |
-| T10 | base | The API server rejects synchronously: a bad verb including `update`, a missing name, an oversized body, mor... | T1.1 | v1 | unclaimed |
+| T1 | base | kaddie-tools and kaddie-agent: can-i on `secrets` (get/list/watch) = no for every namespace. | T1.6 | v1 | test/e2e/rbac_test.go:TestT1_T2_NoSecretsOrDangerousSubresources |
+| T2 | base | kaddie-tools and kaddie-agent: no on `pods/exec`, `pods/attach`, `pods/portforward`, `pods/proxy`, `service... | T1.6 | v1 | test/e2e/rbac_test.go:TestT1_T2_NoSecretsOrDangerousSubresources |
+| T3 | base | kaddie-agent is bound to no role: its `can-i --list` contains only the Kubernetes-default self-review permi... | T1.6 | v1 | partial: test/e2e/rbac_test.go:TestT3_GT1_AgentAndToolsPermissions (pod token and API server egress parts need the Deployment, T6.9) |
+| T4 | base | No SRE service identity (agent, and the harness, git writer, renderer and UI identities) has a forbidden pe... | T1.3, T1.6 | v1 | test/chart/rbac_render_test.go:TestT4_EveryRuleFromATemplate, test/chart/rbac_render_test.go:TestT4_NoWildcardsOrAggregation, test/chart/rbac_render_test.go:TestT4_NoForbiddenPermission, test/e2e/rbac_test.go:TestT4_GT2_GT4_HT1_EffectivePermissionsMatchGolden |
+| T5 | base | `kaddie-operator` grants no permission outside the `kaddie.org` group except `get`/`update`/`patch` on the... | T1.6 | v1 | test/chart/rbac_render_test.go:TestT5_OperatorRole, test/e2e/rbac_test.go:TestT5_OperatorRoleAndBindings |
+| T6 | base | `kaddie-system` rejects `SREProposal` creates beyond its object quota, and an `SREProposal` in any other na... | T1.2, T2.5 | v1 | partial: test/e2e/chart_test.go:TestT6_ProposalQuota (EvaluateStatic part: T2.5) |
+| T7 | base | Creating an `SREProposal` as an identity without `create` on `sreproposals` → denied by RBAC. | T1.4 | v1 | test/e2e/chart_test.go:TestT7_GT5_CreateNeedsRBAC |
+| T8 | base | Updating `SREProposal.spec`, even as cluster-admin → denied. | T1.4 | v1 | test/envtest/crd_validation_test.go:TestCRD_T8_SpecImmutable, test/e2e/chart_test.go:TestT8_GT5_SpecImmutableForClusterAdmin |
+| T9 | base | A status write by an identity without `update` on `sreproposals/status` → denied by RBAC. | T1.5 | v1 | partial: test/e2e/status_write_test.go:TestT9_GT6_GT40_StatusWrites (D1 firing: T6.11) |
+| T10 | base | The API server rejects synchronously: a bad verb including `update`, a missing name, an oversized body, mor... | T1.1 | v1 | test/envtest/crd_test.go:TestCRD_T10_SynchronousRejections |
 | T11 | base | A proposal created directly, bypassing kaddie-tools, with an invalid JSON body, a `<redacted:` placeholder... | T2.5, T6.5, T6.7 | v1 | unclaimed |
 | T12 | base | For each match field in §4.2 (`apiGroups`, `resources` incl. | T2.1, T5.5 | v1 | unclaimed |
 | T13 | base | A proposal where only one of several requests matches a protection is high risk, and the reason names that... | T2.5 | v1 | unclaimed |
@@ -46,7 +46,7 @@ Tasks done: T0.1
 | T24 | base | `propose_read` for that type creates a proposal whose only request is a `patch` on `clusterroles/kaddie-age... | T7.1 | v1.1 | unclaimed |
 | T25 | base | `EvaluateStatic` and the exact evaluation flag as high risk any proposal that would leave `kaddie-agent-rea... | T2.5, T2.6 | v1 | unclaimed |
 | T26 | base | An `Api` proposal that patches any other RBAC object, creates or deletes any ClusterRole or binding, or pat... | T7.1 | v1.1 | unclaimed |
-| T27 | base | In `cluster` ownership mode, `helm upgrade` leaves rules added to `kaddie-agent-read` after install in plac... | T1.3, T7.2 | v1 | unclaimed |
+| T27 | base | In `cluster` ownership mode, `helm upgrade` leaves rules added to `kaddie-agent-read` after install in plac... | T1.3, T7.2 | v1 | partial: test/chart/rbac_render_test.go:TestT27_AgentReadKeptByHelm, test/e2e/chart_test.go:TestT27_AgentReadSurvivesHelm (git mode: T7.2) |
 | T28 | base | Removing a rule from `kaddie-agent-read` by hand makes its kind `type-only` again within the discovery refr... | T5.3 | v1 | unclaimed |
 | T29 | base | `Halted` → kaddie-tools creates no proposal, the agent makes no LLM calls (mock LLM sees zero requests), an... | T5.2, T5.3, T5.5 | v1 | unclaimed |
 | T30 | base | `SREConfig` deleted → everything behaves as `Halted`, including the harness creating no proposal. | T5.5 | v1 | unclaimed |
@@ -61,8 +61,8 @@ Tasks done: T0.1
 | T39 | base | A Deployment patch changing only `spec.replicas` or `resources` isn't flagged; one that also changes `spec.... | T2.3, T2.4 | v1 | unclaimed |
 | T40 | base | A test mutating webhook changes a protected field during the dry run → the client flags the proposal as hig... | T2.6, T6.5 | v1 | unclaimed |
 | T41 | base | Field rules never match `delete`. | T2.3 | v1 | unclaimed |
-| T42 | base | An identity with `update` and `patch` on `sreconfigs` can change `mode`, `triggersPaused` and every setting... | T1.6 | v1 | unclaimed |
-| T43 | base | Creating an `SREConfig` with any name other than `default` is rejected by the CRD schema. | T1.2, T1.4 | v1 | unclaimed |
+| T42 | base | An identity with `update` and `patch` on `sreconfigs` can change `mode`, `triggersPaused` and every setting... | T1.6 | v1 | test/e2e/rbac_test.go:TestT42_GT3_OnlyOperatorsChangeSREConfig |
+| T43 | base | Creating an `SREConfig` with any name other than `default` is rejected by the CRD schema. | T1.2, T1.4 | v1 | partial: test/envtest/crd_validation_test.go:TestCRD_T43_SREConfigSingleton, test/chart/render_test.go:TestT43_ChartCreatesNoSREConfig, test/e2e/chart_test.go:TestT43_SREConfigUntouchedByHelm (components behaving as Halted: T4.6, T5.2, T5.3, T6.8) |
 | T44 | base | With `api.enabled: false`, kaddie-tools refuses to create an `Api` proposal, except one whose single reques... | T5.5 | v1 | unclaimed |
 | T45 | base | With proposals.expirySeconds unset, no proposal expires; with it set, a proposal expires at its creation ti... | T2.6 | v1 | unclaimed |
 | T46 | base | kaddie-sessions' retention loop never removes an open proposal, high risk or not, and removes closed ones (... | T4.8 | v1 | unclaimed |
@@ -72,8 +72,8 @@ Tasks done: T0.1
 | T50 | base | No pod can connect to the kaddie-agent except the metrics scrape, the agent's egress is limited to the LLM... | T6.9, T11.1 | v1 | unclaimed |
 | T51 | base | A call to an unlisted external tool, a drifted MCP definition or an invalid parameter is rejected with no o... | T9.3 | v1.1 | unclaimed |
 | T52 | base | Secrets planted in human messages, webhook payloads and external tool results reach the LLM and the session... | T9.1 | v1.1 | unclaimed |
-| T53 | base | Rendering the chart for a cluster reporting Kubernetes 1.27 fails with the message naming the requirement a... | T1.2 | v1 | unclaimed |
-| HT1 | harness | kaddie-agent's and kaddie-tools' effective permissions are exactly base T3's sets: the harness adds nothing. | T1.6 | v1 | unclaimed |
+| T53 | base | Rendering the chart for a cluster reporting Kubernetes 1.27 fails with the message naming the requirement a... | T1.2 | v1 | test/chart/render_test.go:TestT53_VersionGate, test/e2e/chart_test.go:TestT53_InstallsOnMinimumVersion |
+| HT1 | harness | kaddie-agent's and kaddie-tools' effective permissions are exactly base T3's sets: the harness adds nothing. | T1.6 | v1 | test/e2e/rbac_test.go:TestHT1_SessionsReadsToolsPlusTriggers, test/e2e/rbac_test.go:TestT4_GT2_GT4_HT1_EffectivePermissionsMatchGolden, test/e2e/rbac_test.go:TestT3_GT1_AgentAndToolsPermissions |
 | HT2 | harness | No pod can open a connection to the kaddie-agent pod on any port except the metrics port from the scrape id... | T6.9, T11.1 | v1 | unclaimed |
 | HT3 | harness | A kaddie-agent token with the default audience, or with audience `kaddie-tools`, is rejected by kaddie-sess... | T4.4 | v1 | unclaimed |
 | HT4 | harness | The kaddie-agent pod spec contains no Secret or env from any external tool or store credential; a planted c... | T6.9, T9.1, T11.1 | v1 | unclaimed |
@@ -87,7 +87,7 @@ Tasks done: T0.1
 | HT12 | harness | A user without `create sresessions` can't start a session; one without `get` can't read; a user without `de... | T4.4, T4.6 | v1 | unclaimed |
 | HT13 | harness | A session that read logs in namespaces `a` and `b` is readable by a user with `get pods/log` in both, invis... | T4.4, T4.7, T9.2 | v1 | unclaimed |
 | HT14 | harness | kaddie-sessions rejects an `Kaddie-Assertion` header on a request authenticated as any identity other than... | T4.4 | v1 | unclaimed |
-| HT15 | harness | Identity: with username and group prefixes configured on the kube-apiserver, the subject kaddie-sessions pa... | T0.3, T4.4 | v1 | unclaimed |
+| HT15 | harness | Identity: with username and group prefixes configured on the kube-apiserver, the subject kaddie-sessions pa... | T0.3, T4.4 | v1 | partial: test/e2e/oidc_spike_test.go:TestOIDC_Spike (prefixes applied by the API server; assertions: T4.4) |
 | HT38 | harness | `ListSessions` filters by `s``ource`, `trigger`, `namespace`, `object`, `proposal` and time window return e... | T4.7, T10.1 | v1 | unclaimed |
 | HT16 | harness | Each shipped `watch` trigger, once promoted to `Active` (with its kinds added to `kaddie-agent-read` where... | T8.2, T8.3 | v1.1 | unclaimed |
 | HT17 | harness | `Shadow` mode starts nothing and records each fire on Shadow-mode instances (`countFired`, `lastFired`); sw... | T8.2 | v1.1 | unclaimed |
@@ -111,13 +111,13 @@ Tasks done: T0.1
 | HT33 | harness | Fencing: an agent whose lease expired during a simulated partition gets `StaleLease` on `ReadRun`, `Append`... | T4.3, T4.5 | v1 | unclaimed |
 | HT34 | harness | A run whose agent crashes on every attempt ends `Failed/ResumeLimit` after `maxAttempts`; the time between... | T4.3, T5.7 | v1 | unclaimed |
 | HT26 | harness | A mock LLM issues random and adversarial tool calls including external tools, and a mock tenant floods trig... | T11.5 | v1.2 | unclaimed |
-| GT1 | gitops | kaddie-agent's and kaddie-tools' effective permissions are exactly base T3's sets, and nothing else. | T12.10 | v2 | unclaimed |
-| GT2 | gitops | kaddie-git-writer's and kaddie-renderer's effective permissions are exactly §6.2's and §6.3's. | T12.10 | v2 | unclaimed |
-| GT3 | gitops | No SRE identity has write access to `sreconfigs`. | T12.10 | v2 | unclaimed |
-| GT4 | gitops | The base spec's forbidden-permissions test (base T4) passes for every identity in this spec, with no except... | T12.10 | v2 | unclaimed |
-| GT5 | gitops | Base T7 and T8 hold for `Git` proposals. | T12.10 | v2 | unclaimed |
-| GT6 | gitops | In normal operation each `Git` status block is written only by its intended writer (§7.2): `render` by kadd... | T1.5, T12.5, T12.10 | v1 | unclaimed |
-| GT7 | gitops | The API server rejects synchronously: more than 20 edits, an unknown operation, missing or extra fields for... | T1.1, T12.2 | v1 | unclaimed |
+| GT1 | gitops | kaddie-agent's and kaddie-tools' effective permissions are exactly base T3's sets, and nothing else. | T12.10 | v2 | partial: test/e2e/rbac_test.go:TestT3_GT1_AgentAndToolsPermissions (re-run with GitOps on: T12.10) |
+| GT2 | gitops | kaddie-git-writer's and kaddie-renderer's effective permissions are exactly §6.2's and §6.3's. | T12.10 | v2 | partial: test/e2e/rbac_test.go:TestT4_GT2_GT4_HT1_EffectivePermissionsMatchGolden (re-run with workloads: T12.10) |
+| GT3 | gitops | No SRE identity has write access to `sreconfigs`. | T12.10 | v2 | test/e2e/rbac_test.go:TestT42_GT3_OnlyOperatorsChangeSREConfig |
+| GT4 | gitops | The base spec's forbidden-permissions test (base T4) passes for every identity in this spec, with no except... | T12.10 | v2 | test/e2e/rbac_test.go:TestT4_GT2_GT4_HT1_EffectivePermissionsMatchGolden |
+| GT5 | gitops | Base T7 and T8 hold for `Git` proposals. | T12.10 | v2 | test/e2e/chart_test.go:TestT7_GT5_CreateNeedsRBAC, test/e2e/chart_test.go:TestT8_GT5_SpecImmutableForClusterAdmin |
+| GT6 | gitops | In normal operation each `Git` status block is written only by its intended writer (§7.2): `render` by kadd... | T1.5, T12.5, T12.10 | v1 | partial: test/e2e/status_write_test.go:TestT9_GT6_GT40_StatusWrites (GD1 firing: T12.10) |
+| GT7 | gitops | The API server rejects synchronously: more than 20 edits, an unknown operation, missing or extra fields for... | T1.1, T12.2 | v1 | partial: test/envtest/crd_test.go:TestCRD_GT7_GitSchemaRejections (kaddie-tools and UI part: T12.2) |
 | GT8 | gitops | kaddie-git-writer scaled to 0: proposals are stored, rendered and can be approved, no PR is opened, and not... | T12.7 | v2 | unclaimed |
 | GT9 | gitops | A created plain manifest declaring a ClusterRoleBinding, a Secret, an ExternalSecret, an Argo CD Applicatio... | T12.2, T12.5 | v2 | unclaimed |
 | GT10 | gitops | Proposals touching CI definitions, CODEOWNERS, `.gitattributes`, `.gitmodules`, symlinks, `Chart.yaml` depe... | T12.7 | v2 | unclaimed |
@@ -130,7 +130,7 @@ Tasks done: T0.1
 | GT36 | gitops | The `render-sandbox` container has no ServiceAccount token, no git credential and no writable root filesyst... | T12.4 | v2 | unclaimed |
 | GT37 | gitops | A target described by a config-management plugin is `Unrenderable`; kaddie-ui shows a warning, not a high-r... | T12.4 | v2 | unclaimed |
 | GT39 | gitops | kaddie-ui shows a Git proposal's rendered requests through the same view, static evaluation and dry-run as... | T12.5 | v2 | unclaimed |
-| GT40 | gitops | kaddie-ui offers `ReadyForPR` and `Dismissed` only to a viewer whose SelfSubjectAccessReview for `update` o... | T1.5, T12.5 | v1 | unclaimed |
+| GT40 | gitops | kaddie-ui offers `ReadyForPR` and `Dismissed` only to a viewer whose SelfSubjectAccessReview for `update` o... | T1.5, T12.5 | v1 | partial: test/e2e/status_write_test.go:TestT9_GT6_GT40_StatusWrites (kaddie-ui part: T12.5) |
 | GT41 | gitops | kaddie-ui offers `ReadyForPR` only to viewers allowed to update `sreproposals/status`, disables it when the... | T12.5 | v2 | unclaimed |
 | GT16 | gitops | kaddie-git-writer ignores proposals without `ReadyForPR`, `Dismissed` ones, expired ones, other types, ones... | T12.7 | v2 | unclaimed |
 | GT17 | gitops | kaddie-git-writer pushes exactly one commit to a new `kaddie/<uid>` branch, with `baseSHA` as its parent, n... | T12.7, T12.8 | v2 | unclaimed |
@@ -154,7 +154,7 @@ Tasks done: T0.1
 | GT34 | gitops | Changing one repository entry re-checks only that repository's open PRs. | T12.9 | v2 | unclaimed |
 | UT1 | ui | The kaddie-ui pod mounts no ServiceAccount token except the projected one with audience `kaddie-sessions`,... | T6.1 | v1 | unclaimed |
 | UT2 | ui | Sign-in yields one kube token. | T6.2 | v1 | unclaimed |
-| UT3 | ui | With username and group prefixes configured, the identity kaddie-ui displays, the `actedBy` it writes and t... | T0.3, T6.2 | v1 | unclaimed |
+| UT3 | ui | With username and group prefixes configured, the identity kaddie-ui displays, the `actedBy` it writes and t... | T0.3, T6.2 | v1 | partial: test/e2e/oidc_spike_test.go:TestOIDC_Spike (prefixes applied by the API server; kaddie-ui part: T6.2) |
 | UT4 | ui | Tokens never appear in kaddie-ui logs, metrics, error bodies or in `localStorage`, cookies or IndexedDB; `s... | T6.1, T6.3 | v1 | unclaimed |
 | UT5 | ui | Sessions routes reach kaddie-sessions with kaddie-ui's token and an assertion carrying the username, UID, g... | T6.2 | v1 | unclaimed |
 | UT6 | ui | Happy path with a multi-request `Api` proposal: the audit log shows each write by the operator's identity w... | T6.6 | v1 | unclaimed |
