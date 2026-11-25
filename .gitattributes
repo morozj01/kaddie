@@ -1,0 +1,12 @@
+# Force LF everywhere so generated files, gofmt output, golden files and
+# prompt hashes are byte-identical on a Windows checkout and in CI.
+* text=auto eol=lf
+
+# Binary files: never normalise.
+*.png  binary
+*.jpg  binary
+*.gif  binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
+*.exe  binary
