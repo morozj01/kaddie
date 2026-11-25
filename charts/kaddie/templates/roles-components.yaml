@@ -1,0 +1,70 @@
+{{- /*
+One ClusterRole per component that holds permissions, named after it and
+carrying all its rules, its lease included (Architecture §6.1). kaddie-agent
+and kaddie-ui have none.
+*/}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kaddie-sessions
+  labels:
+    {{- include "kaddie.labels" . | nindent 4 }}
+rules:
+  {{- include "kaddie.rules.config-read" . | nindent 2 }}
+  {{- include "kaddie.rules.proposal-read" . | nindent 2 }}
+  {{- include "kaddie.rules.trigger-read" . | nindent 2 }}
+  {{- include "kaddie.rules.trigger-status-write" . | nindent 2 }}
+  {{- include "kaddie.rules.token-review" . | nindent 2 }}
+  {{- include "kaddie.rules.access-review" . | nindent 2 }}
+  {{- include "kaddie.rules.proposal-prune" . | nindent 2 }}
+  {{- include "kaddie.rules.lease" "kaddie-sessions-leader" | nindent 2 }}
+  {{- if .Values.gitops.enabled }}
+  {{- range .Values.gitops.reconcilerAdapters }}
+  {{- include "kaddie.rules.reconciler-read" . | nindent 2 }}
+  {{- end }}
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kaddie-tools
+  labels:
+    {{- include "kaddie.labels" . | nindent 4 }}
+rules:
+  {{- include "kaddie.rules.config-read" . | nindent 2 }}
+  {{- include "kaddie.rules.proposal-read" . | nindent 2 }}
+  {{- include "kaddie.rules.token-review" . | nindent 2 }}
+  {{- if .Values.gitops.enabled }}
+  {{- range .Values.gitops.reconcilerAdapters }}
+  {{- include "kaddie.rules.reconciler-read" . | nindent 2 }}
+  {{- end }}
+  {{- end }}
+{{- if .Values.gitops.enabled }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kaddie-git-writer
+  labels:
+    {{- include "kaddie.labels" . | nindent 4 }}
+rules:
+  {{- include "kaddie.rules.config-read" . | nindent 2 }}
+  {{- include "kaddie.rules.proposal-read" . | nindent 2 }}
+  {{- include "kaddie.rules.proposal-status-write" . | nindent 2 }}
+  {{- include "kaddie.rules.lease" "kaddie-git-writer-leader" | nindent 2 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kaddie-renderer
+  labels:
+    {{- include "kaddie.labels" . | nindent 4 }}
+rules:
+  {{- include "kaddie.rules.config-read" . | nindent 2 }}
+  {{- include "kaddie.rules.proposal-read" . | nindent 2 }}
+  {{- include "kaddie.rules.proposal-status-write" . | nindent 2 }}
+  {{- include "kaddie.rules.lease" "kaddie-renderer-leader" | nindent 2 }}
+  {{- range .Values.gitops.reconcilerAdapters }}
+  {{- include "kaddie.rules.reconciler-read" . | nindent 2 }}
+  {{- end }}
+{{- end }}
