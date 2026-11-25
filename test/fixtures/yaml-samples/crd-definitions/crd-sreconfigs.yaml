@@ -62,7 +62,7 @@ spec:
                         default: {}
                         properties:
                           branchPrefix: { type: string, enum: [kaddie/], default: kaddie/ }
-                          minRequiredApprovals: { type: integer, minimum: 1, default: 2 }
+                          minRequiredApprovals: { type: integer, minimum: 1, default: 1 }
                           labels: { type: array, items: { type: string }, default: [] }
                           includeJustification: { type: boolean, default: true }
                           attestations: { type: array, items: { type: string }, default: [] }

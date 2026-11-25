@@ -200,7 +200,7 @@ spec:
                             type: string
                           type: array
                         minRequiredApprovals:
-                          default: 2
+                          default: 1
                           description: |-
                             MinRequiredApprovals is how many approvals preflight requires branch
                             protection to demand.

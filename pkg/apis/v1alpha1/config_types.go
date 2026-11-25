@@ -135,7 +135,7 @@ type PRSettings struct {
 	// MinRequiredApprovals is how many approvals preflight requires branch
 	// protection to demand.
 	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:default=2
+	// +kubebuilder:default=1
 	// +optional
 	MinRequiredApprovals *int64 `json:"minRequiredApprovals,omitempty"`
 	// Labels are added to every PR.

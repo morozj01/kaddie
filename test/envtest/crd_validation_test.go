@@ -128,7 +128,7 @@ func TestCRD_T43_SREConfigSingleton(t *testing.T) {
 		if got := strings.Join(r.EditableExtensions, ","); got != ".yaml,.yml,.json" {
 			t.Errorf("editableExtensions = %q", got)
 		}
-		if r.PR.BranchPrefix != "kaddie/" || r.PR.MinRequiredApprovals == nil || *r.PR.MinRequiredApprovals != 2 {
+		if r.PR.BranchPrefix != "kaddie/" || r.PR.MinRequiredApprovals == nil || *r.PR.MinRequiredApprovals != 1 {
 			t.Errorf("pr defaults = %+v", r.PR)
 		}
 	})
