@@ -154,17 +154,29 @@ func installChartE(extra ...string) error {
 
 // waitQuotaReady waits until the quota controller has computed the
 // proposal quota's status. Until then the API server refuses every
-// SREProposal create with "status unknown for quota" (seen on 1.37).
+// SREProposal create with "status unknown for quota". On a fresh cluster
+// that takes over a minute: the controller first has to discover the
+// just-installed sreproposals type, on its own discovery resync.
 func waitQuotaReady() error {
-	return wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, time.Minute, true, func(ctx context.Context) (bool, error) {
+	start := time.Now()
+	var last corev1.ResourceQuotaStatus
+	err := wait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
 		q := &corev1.ResourceQuota{}
 		if err := admin.Get(ctx, client.ObjectKey{Namespace: systemNamespace, Name: "kaddie-proposals"}, q); err != nil {
 			return false, client.IgnoreNotFound(err)
 		}
+		last = q.Status
 		res := corev1.ResourceName("count/sreproposals.kaddie.org")
 		_, used := q.Status.Used[res]
 		return used && q.Status.Hard[res].Equal(q.Spec.Hard[res]), nil
 	})
+	if err != nil {
+		return fmt.Errorf("waiting for the proposal quota's status (last seen hard=%v used=%v): %w", last.Hard, last.Used, err)
+	}
+	if d := time.Since(start); d > 5*time.Second {
+		fmt.Fprintf(os.Stderr, "e2e: the proposal quota's status took %s to appear\n", d.Round(time.Second))
+	}
+	return nil
 }
 
 // restoreChart reinstalls the default values when the test ends.
@@ -190,7 +202,7 @@ func uninstallChart(t *testing.T) {
 // waitNamespaceGone waits until kaddie-system isn't terminating, so a
 // reinstall after an uninstall can create it again.
 func waitNamespaceGone() error {
-	return wait.PollUntilContextTimeout(ctx, time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
+	err := wait.PollUntilContextTimeout(ctx, time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
 		ns := &corev1.Namespace{}
 		err := admin.Get(ctx, client.ObjectKey{Name: systemNamespace}, ns)
 		if apierrors.IsNotFound(err) {
@@ -201,6 +213,10 @@ func waitNamespaceGone() error {
 		}
 		return ns.DeletionTimestamp == nil, nil
 	})
+	if err != nil {
+		return fmt.Errorf("waiting for namespace %s to finish terminating: %w", systemNamespace, err)
+	}
+	return nil
 }
 
 func helm(t *testing.T, args ...string) string {

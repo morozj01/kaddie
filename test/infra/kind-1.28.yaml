@@ -15,6 +15,12 @@ nodes:
       - |
         apiVersion: kubeadm.k8s.io/v1beta3
         kind: ClusterConfiguration
+        # The quota controller recomputes a quota whose resource type it
+        # discovered late only on this resync (default 5m), so a fresh
+        # cluster refuses proposals that long. 30s keeps e2e setup short.
+        controllerManager:
+          extraArgs:
+            resource-quota-sync-period: 30s
         apiServer:
           extraArgs:
             oidc-issuer-url: https://kaddie-oidc:8443
