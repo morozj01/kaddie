@@ -43,6 +43,7 @@ spec:
                     enabled: { type: boolean, default: true }
                 repositories:
                   type: array
+                  maxItems: 64
                   default: []
                   x-kubernetes-list-type: map
                   x-kubernetes-list-map-keys: [name]

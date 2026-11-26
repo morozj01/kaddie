@@ -97,9 +97,8 @@ spec:
                 description: |-
                   Repositories are the git repositories registered for the GitOps path.
 
-                  MaxItems is not in the spec's sample: without a bound, a 1.28 API
-                  server rejects the CRD because the url rule's estimated CEL cost
-                  exceeds the per-CRD budget.
+                  MaxItems keeps the url rule's estimated CEL cost within budget: on an
+                  unbounded list a 1.28 API server rejects the CRD.
                 items:
                   description: Repository is one registered git repository.
                   properties:

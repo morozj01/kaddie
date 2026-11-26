@@ -67,9 +67,8 @@ type SREConfigSpec struct {
 	API APISettings `json:"api,omitempty"`
 	// Repositories are the git repositories registered for the GitOps path.
 	//
-	// MaxItems is not in the spec's sample: without a bound, a 1.28 API
-	// server rejects the CRD because the url rule's estimated CEL cost
-	// exceeds the per-CRD budget.
+	// MaxItems keeps the url rule's estimated CEL cost within budget: on an
+	// unbounded list a 1.28 API server rejects the CRD.
 	// +kubebuilder:validation:MaxItems=64
 	// +kubebuilder:default={}
 	// +listType=map
