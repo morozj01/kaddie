@@ -20,12 +20,13 @@ const (
 // SREConfigName is the only name the CRD schema admits.
 const SREConfigName = "default"
 
+// The metadata.name restriction to "default" is added to the generated CRD by
+// hack/crdpost, because controller-gen can't put a schema on metadata. (Kept
+// out of the doc comment below, which becomes the CRD's description.)
+
 // SREConfig is the kill switch and the system settings, in one cluster-scoped
 // singleton named "default". The chart never creates it: a fresh install has
 // none, which every component treats as Halted.
-//
-// The metadata.name restriction to "default" is added to the generated CRD by
-// hack/crdpost, because controller-gen can't put a schema on metadata.
 //
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster
@@ -65,10 +66,11 @@ type SREConfigSpec struct {
 	// +kubebuilder:default={}
 	// +optional
 	API APISettings `json:"api,omitempty"`
+	// MaxItems below keeps the url rule's estimated CEL cost within budget: on
+	// an unbounded list a 1.28 API server rejects the CRD. (Kept out of the
+	// field's doc comment, which becomes its CRD description.)
+
 	// Repositories are the git repositories registered for the GitOps path.
-	//
-	// MaxItems keeps the url rule's estimated CEL cost within budget: on an
-	// unbounded list a 1.28 API server rejects the CRD.
 	// +kubebuilder:validation:MaxItems=64
 	// +kubebuilder:default={}
 	// +listType=map

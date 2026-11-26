@@ -32,9 +32,6 @@ spec:
           SREConfig is the kill switch and the system settings, in one cluster-scoped
           singleton named "default". The chart never creates it: a fresh install has
           none, which every component treats as Halted.
-
-          The metadata.name restriction to "default" is added to the generated CRD by
-          hack/crdpost, because controller-gen can't put a schema on metadata.
         properties:
           apiVersion:
             description: |-
@@ -94,11 +91,8 @@ spec:
                 type: string
               repositories:
                 default: []
-                description: |-
-                  Repositories are the git repositories registered for the GitOps path.
-
-                  MaxItems keeps the url rule's estimated CEL cost within budget: on an
-                  unbounded list a 1.28 API server rejects the CRD.
+                description: Repositories are the git repositories registered for
+                  the GitOps path.
                 items:
                   description: Repository is one registered git repository.
                   properties:
