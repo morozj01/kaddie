@@ -13,26 +13,26 @@ spec:
     - name: platform-config
       url: https://git.example.com/org/platform-config.git
       targetBranch: main
-      readablePaths:
-        - "apps/**"
-        - "charts/**"
-      editablePaths:
-        - "apps/*/overlays/*/kustomization.yaml"
-        - "apps/*/overlays/*/*-patch.yaml"
-        - "apps/*/values-*.yaml"
-      editableExtensions: [".yaml", ".yml", ".json"]
       protectedPaths:
         - "apps/*/base/**"
+        - "secrets/**"
       pr:
         branchPrefix: kaddie/
         minRequiredApprovals: 2
         labels: [kaddie-agent]
         includeJustification: true
         attestations: []
-      deployTargets:
+      deployPaths:
         - name: payments-prod
-          trackedRevision: main
           path: apps/payments/overlays/prod
           tool: Kustomize
-          destinationNamespace: payments
-          local: true
+          namespace: payments
+          extraArgs: []
+        - name: billing
+          path: charts/billing
+          tool: Helm
+          namespace: billing
+          extraArgs:
+            - --name-template=billing
+            - --values=values-prod.yaml
+            - --kube-version=1.30.0

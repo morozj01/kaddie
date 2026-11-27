@@ -8,7 +8,7 @@ Tests use them as follows:
 
 | Directory | Used by |
 | --- | --- |
-| `crd-definitions/` | `test/crds`: generated CRDs must match, apart from the allowed additions |
+| `crd-definitions/` | `test/crds`: generated CRDs must match exactly |
 | `crds/` | `test/envtest`: every instance must be admitted by the generated CRDs |
 | `roles/`, `rolebindings/` | `test/chart`: rendered RBAC must match, apart from the illustrative extras |
 | `namespace/`, `serviceaccounts/` | `test/chart`: rendered objects must match |

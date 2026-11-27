@@ -121,12 +121,16 @@ func TestCRD_T43_SREConfigSingleton(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{Name: v1.SREConfigName},
 			Spec: v1.SREConfigSpec{Repositories: []v1.Repository{{
 				Name: "r", URL: "git@git.example.com:org/r.git", TargetBranch: "main",
+				DeployPaths: []v1.DeployPath{{Name: "app", Path: "apps/app", Tool: "Kustomize"}},
 			}}},
 		}
 		expectAdmitted(t, cfg)
 		r := cfg.Spec.Repositories[0]
-		if got := strings.Join(r.EditableExtensions, ","); got != ".yaml,.yml,.json" {
-			t.Errorf("editableExtensions = %q", got)
+		if r.ProtectedPaths == nil || len(r.ProtectedPaths) != 0 {
+			t.Errorf("protectedPaths = %#v, want []", r.ProtectedPaths)
+		}
+		if d := r.DeployPaths[0]; d.ExtraArgs == nil || len(d.ExtraArgs) != 0 {
+			t.Errorf("deployPaths[0].extraArgs = %#v, want []", d.ExtraArgs)
 		}
 		if r.PR.BranchPrefix != "kaddie/" || r.PR.MinRequiredApprovals == nil || *r.PR.MinRequiredApprovals != 1 {
 			t.Errorf("pr defaults = %+v", r.PR)

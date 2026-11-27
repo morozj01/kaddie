@@ -220,7 +220,7 @@ func TestT42_GT3_OnlyOperatorsChangeSREConfig(t *testing.T) {
 		"mode":           `{"spec":{"mode":"Enabled","reason":"go","changedBy":"operator@example.com"}}`,
 		"triggersPaused": `{"spec":{"triggersPaused":true}}`,
 		"api.enabled":    `{"spec":{"api":{"enabled":false}}}`,
-		"repositories":   `{"spec":{"repositories":[{"name":"r","url":"https://git.example.com/r.git","targetBranch":"main","editablePaths":["apps/**"],"pr":{"minRequiredApprovals":3}}]}}`,
+		"repositories":   `{"spec":{"repositories":[{"name":"r","url":"https://git.example.com/r.git","targetBranch":"main","protectedPaths":["secrets/**"],"pr":{"minRequiredApprovals":3}}]}}`,
 	}
 	cfg := &v1.SREConfig{ObjectMeta: metav1.ObjectMeta{Name: "default"}}
 	for field, patch := range patches {

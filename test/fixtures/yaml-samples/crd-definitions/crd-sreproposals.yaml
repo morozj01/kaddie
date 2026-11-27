@@ -147,19 +147,11 @@ spec:
                         type: object
                         properties:
                           name: { type: string }
-                          source: { type: string, enum: [Discovered, Declared] }
                           tool: { type: string, enum: [Plain, Helm, Kustomize] }
-                          destinationNamespace: { type: string }
+                          namespace: { type: string }
                           rendered: { type: boolean }
                           reason: { type: string }
                           requestIndexes: { type: array, items: { type: integer, minimum: 0 } }
-                    unaffectedTargets:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          name: { type: string }
-                          trackedRevision: { type: string }
                     requests:
                       type: array
                       maxItems: 200
@@ -203,15 +195,7 @@ spec:
                         type: object
                         properties:
                           name: { type: string }
-                          source: { type: string, enum: [Discovered, Declared] }
-                          destinationNamespace: { type: string }
-                    unaffectedTargets:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          name: { type: string }
-                          trackedRevision: { type: string }
+                          namespace: { type: string }
                 pushFailure:
                   type: object
                   properties:

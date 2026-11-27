@@ -96,26 +96,36 @@ spec:
                 items:
                   description: Repository is one registered git repository.
                   properties:
-                    deployTargets:
+                    deployPaths:
                       default: []
-                      description: DeployTargets are paths deployed by something no
-                        reconciler adapter describes.
+                      description: DeployPaths are the paths in this repository deployed
+                        to this cluster.
                       items:
-                        description: DeployTarget is a path deployed by something
-                          no reconciler adapter describes.
+                        description: |-
+                          DeployPath is a path in the repository deployed to this cluster. It
+                          follows the repository's targetBranch.
                         properties:
-                          destinationNamespace:
-                            description: DestinationNamespace is where it deploys.
-                            type: string
-                          local:
-                            description: Local says whether it is applied to this
-                              cluster.
-                            type: boolean
+                          extraArgs:
+                            default: []
+                            description: |-
+                              ExtraArgs are every tool-specific flag for helm template or kubectl
+                              kustomize, passed as separate arguments, never through a shell.
+                            items:
+                              type: string
+                            maxItems: 64
+                            type: array
                           name:
-                            description: Name is shown to reviewers.
+                            description: Name is shown to reviewers and the agent.
+                            type: string
+                          namespace:
+                            description: |-
+                              Namespace is the namespace for rendered objects that have none; also
+                              helm template's --namespace.
                             type: string
                           path:
-                            description: Path is the repository path it consumes.
+                            description: |-
+                              Path is the repository path it consumes; kaddie-renderer runs the tool
+                              from inside it.
                             type: string
                           tool:
                             description: Tool is how kaddie-renderer renders the path.
@@ -124,40 +134,11 @@ spec:
                             - Helm
                             - Kustomize
                             type: string
-                          trackedRevision:
-                            description: TrackedRevision is the revision the deployment
-                              follows.
-                            type: string
-                          valueFiles:
-                            default: []
-                            description: ValueFiles are Helm values files relative
-                              to Path, applied in order.
-                            items:
-                              type: string
-                            type: array
                         required:
-                        - destinationNamespace
-                        - local
                         - name
                         - path
+                        - tool
                         type: object
-                      type: array
-                    editableExtensions:
-                      default:
-                      - .yaml
-                      - .yml
-                      - .json
-                      description: EditableExtensions are the extensions of files
-                        that may be created or edited.
-                      items:
-                        type: string
-                      type: array
-                    editablePaths:
-                      default: []
-                      description: EditablePaths are globs proposals may change; empty
-                        means reads only.
-                      items:
-                        type: string
                       type: array
                     name:
                       description: Name is the key Git proposals refer to.
@@ -203,14 +184,9 @@ spec:
                       type: object
                     protectedPaths:
                       default: []
-                      description: ProtectedPaths are extra protected globs that always
-                        win over EditablePaths.
-                      items:
-                        type: string
-                      type: array
-                    readablePaths:
-                      default: []
-                      description: ReadablePaths are globs the agent may read.
+                      description: |-
+                        ProtectedPaths are a hard blacklist: globs the agent can't read or
+                        propose edits to. Everything else is readable and editable.
                       items:
                         type: string
                       type: array

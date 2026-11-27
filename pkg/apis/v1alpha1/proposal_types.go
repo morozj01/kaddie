@@ -274,11 +274,7 @@ type RequestResult struct {
 // +kubebuilder:validation:Enum=Rendered;Unrenderable;Failed
 type RenderPhase string
 
-// TargetSource says where a deploy target came from.
-// +kubebuilder:validation:Enum=Discovered;Declared
-type TargetSource string
-
-// RenderTool says how a deploy target is rendered.
+// RenderTool says how a deploy path is rendered.
 // +kubebuilder:validation:Enum=Plain;Helm;Kustomize
 type RenderTool string
 
@@ -287,8 +283,7 @@ type RenderStatus struct {
 	// Phase is the outcome of the render.
 	// +optional
 	Phase RenderPhase `json:"phase,omitempty"`
-	// Reason is a stable code such as UnconsumedPath, ForeignDestination,
-	// TargetConflict, TooLarge or SandboxLimit.
+	// Reason is a stable code such as UnconsumedPath, TooLarge or SandboxLimit.
 	// +kubebuilder:validation:MaxLength=63
 	// +optional
 	Reason string `json:"reason,omitempty"`
@@ -303,13 +298,10 @@ type RenderStatus struct {
 	// RenderedAt is when it rendered.
 	// +optional
 	RenderedAt *metav1.Time `json:"renderedAt,omitempty"`
-	// Targets are the affected deploy targets.
+	// Targets are the affected deploy paths.
 	// +kubebuilder:validation:MaxItems=50
 	// +optional
 	Targets []RenderTarget `json:"targets,omitempty"`
-	// UnaffectedTargets track another revision of the repository.
-	// +optional
-	UnaffectedTargets []UnaffectedTarget `json:"unaffectedTargets,omitempty"`
 	// Requests are the rendered requests; a larger render is recorded as
 	// Failed (TooLarge).
 	// +kubebuilder:validation:MaxItems=200
@@ -317,35 +309,25 @@ type RenderStatus struct {
 	Requests []RenderedRequest `json:"requests,omitempty"`
 }
 
-// RenderTarget is one affected deploy target.
+// RenderTarget is one affected deploy path.
 type RenderTarget struct {
 	// +optional
 	Name string `json:"name,omitempty"`
 	// +optional
-	Source TargetSource `json:"source,omitempty"`
-	// +optional
 	Tool RenderTool `json:"tool,omitempty"`
+	// Namespace is the namespace for rendered objects that have none.
 	// +optional
-	DestinationNamespace string `json:"destinationNamespace,omitempty"`
-	// Rendered is false when the target is Unrenderable.
+	Namespace string `json:"namespace,omitempty"`
+	// Rendered is false when the deploy path is Unrenderable.
 	// +optional
 	Rendered *bool `json:"rendered,omitempty"`
 	// Reason says why it couldn't be rendered.
 	// +optional
 	Reason string `json:"reason,omitempty"`
-	// RequestIndexes lists which requests came from this target.
+	// RequestIndexes lists which requests came from this deploy path.
 	// +kubebuilder:validation:items:Minimum=0
 	// +optional
 	RequestIndexes []int64 `json:"requestIndexes,omitempty"`
-}
-
-// UnaffectedTarget is a target in the repository that tracks another revision.
-type UnaffectedTarget struct {
-	// +optional
-	Name string `json:"name,omitempty"`
-	// TrackedRevision is the revision it follows instead.
-	// +optional
-	TrackedRevision string `json:"trackedRevision,omitempty"`
 }
 
 // ApprovalPhase is an operator's decision on a Git proposal.
@@ -402,27 +384,25 @@ type PRStatus struct {
 	MergedBy string `json:"mergedBy,omitempty"`
 	// +optional
 	ApprovedBy []string `json:"approvedBy,omitempty"`
-	// Targets are the deploy targets the merge affects, copied from
+	// Targets are the deploy paths the merge affects, copied from
 	// status.render at push time.
 	// +optional
 	Targets []PRTarget `json:"targets,omitempty"`
-	// +optional
-	UnaffectedTargets []UnaffectedTarget `json:"unaffectedTargets,omitempty"`
 }
 
-// PRTarget is a deploy target listed on a PR.
+// PRTarget is a deploy path listed on a PR.
 type PRTarget struct {
 	// +optional
 	Name string `json:"name,omitempty"`
+	// Namespace is the namespace for rendered objects that have none.
 	// +optional
-	Source TargetSource `json:"source,omitempty"`
-	// +optional
-	DestinationNamespace string `json:"destinationNamespace,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
 }
 
 // PushFailure says why an approved proposal couldn't be pushed.
 type PushFailure struct {
-	// Reason is a stable code: BaseTooOld, EditsDontApply, TreeMismatch or TooLarge.
+	// Reason is a stable code: BaseTooOld, EditsDontApply, TreeMismatch,
+	// TooLarge or ProtectedPath.
 	// +optional
 	Reason string `json:"reason,omitempty"`
 	// Details say which edit failed which check.

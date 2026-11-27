@@ -34,7 +34,7 @@ Tasks done: T0.1, T0.2, T0.3, T1.1, T1.2, T1.3, T1.4, T1.5, T1.6
 | T12 | base | For each match field in §4.2 (`apiGroups`, `resources` incl. | T2.1, T5.5 | v1 | unclaimed |
 | T13 | base | A proposal where only one of several requests matches a protection is high risk, and the reason names that... | T2.5 | v1 | unclaimed |
 | T14 | base | `generateName` creates and requests on the `namespaces` resource itself can't evade `names` or `namespaces`... | T2.1 | v1 | unclaimed |
-| T15 | base | Every protection in §6.3, including Secrets, secret-delivery kinds, reconciler control kinds, all RBAC, the... | T2.5 | v1 | unclaimed |
+| T15 | base | Every protection in §6.3, including Secrets, secret-delivery kinds, reconciler kinds, all RBAC, the system... | T2.5 | v1 | unclaimed |
 | T16 | base | The protections and the match semantics are identical in kaddie-ui and kaddie-tools: the shared conformance... | T2.7, T5.5, T6.5, T10.4 | v1 | unclaimed |
 | T17 | base | Happy path with a multi-request proposal: the audit log shows each write made by the operator's own identit... | T6.6 | v1 | unclaimed |
 | T18 | base | An operator lacking permission for the second of three requests → the first succeeds, the second fails, the... | T6.6 | v1 | unclaimed |
@@ -121,14 +121,14 @@ Tasks done: T0.1, T0.2, T0.3, T1.1, T1.2, T1.3, T1.4, T1.5, T1.6
 | GT8 | gitops | kaddie-git-writer scaled to 0: proposals are stored, rendered and can be approved, no PR is opened, and not... | T12.7 | v2 | unclaimed |
 | GT9 | gitops | A created plain manifest declaring a ClusterRoleBinding, a Secret, an ExternalSecret, an Argo CD Applicatio... | T12.2, T12.5 | v2 | unclaimed |
 | GT10 | gitops | Proposals touching CI definitions, CODEOWNERS, `.gitattributes`, `.gitmodules`, symlinks, `Chart.yaml` depe... | T12.7 | v2 | unclaimed |
-| GT11 | gitops | Edits to files that no deploy target consumes render as `Failed` (`UnconsumedPath`). | T12.4 | v2 | unclaimed |
-| GT12 | gitops | A discovered target and a `deployTargets` entry that disagree render as `Failed` (`TargetConflict`). | T12.4 | v2 | unclaimed |
+| GT11 | gitops | Edits to files that no deploy path consumes render as `Failed` (`UnconsumedPath`), and kaddie-ui flags them... | T12.3 | v2 | unclaimed |
+| GT12 | gitops | A deploy path's `extraArgs` reach `helm template` or `kubectl kustomize` as separate arguments, unchanged a... | T12.3 | v2 | unclaimed |
 | GT13 | gitops | A `baseSHA` that isn't an ancestor of the tip, or is more than 500 commits old, fails. | T12.2, T12.7 | v2 | unclaimed |
-| GT14 | gitops | Unaffected targets (tag-tracked) are listed in `status.render`, `status.pr` and the PR. | T12.4, T12.8 | v2 | unclaimed |
+| GT14 | gitops | kaddie-tools refuses to read a path in `protectedPaths` and refuses a proposal that creates, edits or delet... | T12.3 | v2 | unclaimed |
 | GT15 | gitops | A YAML alias bomb or a deeply nested document in a created file hits the parser limits; the proposal is hig... | T12.2 | v2 | unclaimed |
-| GT35 | gitops | For fixture repositories (Plain, Helm with values files, Kustomize overlays, for the mock and one real adap... | T12.4 | v2 | unclaimed |
+| GT35 | gitops | For fixture repositories (Plain, Helm with values files, Kustomize overlays), `status.render.requests` equa... | T12.4 | v2 | unclaimed |
 | GT36 | gitops | The `render-sandbox` container has no ServiceAccount token, no git credential and no writable root filesyst... | T12.4 | v2 | unclaimed |
-| GT37 | gitops | A target described by a config-management plugin is `Unrenderable`; kaddie-ui shows a warning, not a high-r... | T12.4 | v2 | unclaimed |
+| GT37 | gitops | A deploy path whose render fails (for example a missing values file) is `Unrenderable`; kaddie-ui shows a w... | T12.4 | v2 | unclaimed |
 | GT39 | gitops | kaddie-ui shows a Git proposal's rendered requests through the same view, static evaluation and dry-run as... | T12.5 | v2 | unclaimed |
 | GT40 | gitops | kaddie-ui offers `ReadyForPR` and `Dismissed` only to a viewer whose SelfSubjectAccessReview for `update` o... | T1.5, T12.5 | v1 | partial: test/e2e/status_write_test.go:TestT9_GT6_GT40_StatusWrites (kaddie-ui part: T12.5) |
 | GT41 | gitops | kaddie-ui offers `ReadyForPR` only to viewers allowed to update `sreproposals/status`, disables it when the... | T12.5 | v2 | unclaimed |
@@ -139,18 +139,18 @@ Tasks done: T0.1, T0.2, T0.3, T1.1, T1.2, T1.3, T1.4, T1.5, T1.6
 | GT19 | gitops | Preflight: each missing setting in §9.1 blocks PR creation for that repository; attestations are reflected... | T12.9 | v2 | unclaimed |
 | GT20 | gitops | A foreign commit on a PR branch causes failure status and closure. | T12.9 | v2 | unclaimed |
 | GT21 | gitops | kaddie-git-writer's credential can't merge, approve or push to the target branch (verified against the test... | T12.6 | v2 | unclaimed |
-| GT22 | gitops | Changing the repository entry between the check and the push (editable paths narrowed) causes kaddie-git-wr... | T12.7 | v2 | unclaimed |
-| GT23 | gitops | Narrowing `editablePaths` or adding a `protectedPaths` entry that matches an open PR's file adds a comment... | T12.9 | v2 | unclaimed |
+| GT22 | gitops | Adding a `protectedPaths` entry that covers an edited file between the check and the push makes kaddie-git-... | T12.3 | v2 | unclaimed |
+| GT23 | gitops | Adding a `protectedPaths` entry that matches an open PR's file makes kaddie-git-writer comment and update t... | T12.9 | v2 | unclaimed |
 | GT24 | gitops | With an expiry configured, expiry closes the PR or ends an unapproved proposal; with none, neither happens. | T12.9 | v2 | unclaimed |
 | GT25 | gitops | A proposal closed by a reviewer, dismissed by an operator, or not pushable by kaddie-git-writer, is removed... | T12.9 | v2 | unclaimed |
 | GT26 | gitops | `ExecutionPaused`: proposals are still rendered, `ReadyForPR` is disabled in kaddie-ui, no new PRs are open... | T12.9 | v2 | unclaimed |
 | GT27 | gitops | `Halted`, or a deleted `SREConfig`: the agent makes no LLM calls, kaddie-renderer renders nothing, and kadd... | T12.9 | v2 | unclaimed |
 | GT28 | gitops | GL2, GL3, GL4 and GL4a take effect immediately. | T12.9 | v2 | unclaimed |
 | GT29 | gitops | Planted secrets in repository files reach the LLM 0 times (mock LLM records everything). | T12.1 | v2 | unclaimed |
-| GT30 | gitops | Repository tools can't read history, other refs, unregistered repositories, or paths outside `readablePaths... | T12.1 | v2 | unclaimed |
+| GT30 | gitops | Repository tools can't read history, other refs, unregistered repositories, or paths in `protectedPaths`; n... | T12.1 | v2 | unclaimed |
 | GT31 | gitops | Adversarial-LLM property test (base T35, extended): random and adversarial tool calls and git proposals. | T12.10 | v2 | unclaimed |
-| GT32 | gitops | With an adapter enabled, kaddie-tools refuses an `Api` proposal targeting a reconciler-managed object, kadd... | T12.3 | v2 | unclaimed |
-| GT33 | gitops | With `api.enabled: false`, `Git` proposals and read proposals work: a `propose_read` for a CRD that isn't a... | T12.10 | v2 | unclaimed |
+| GT32 | gitops | An `Api` proposal, a declared manifest or a rendered request that targets a reconciler kind (Argo CD or Flu... | T12.3 | v2 | unclaimed |
+| GT33 | gitops | With `api.enabled: false`, `Git` proposals and read proposals work: a `propose_read` for a CRD can be execu... | T12.10 | v2 | unclaimed |
 | GT34 | gitops | Changing one repository entry re-checks only that repository's open PRs. | T12.9 | v2 | unclaimed |
 | UT1 | ui | The kaddie-ui pod mounts no ServiceAccount token except the projected one with audience `kaddie-sessions`,... | T6.1 | v1 | unclaimed |
 | UT2 | ui | Sign-in yields one kube token. | T6.2 | v1 | unclaimed |

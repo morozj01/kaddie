@@ -54,9 +54,6 @@ spec:
                       name: { type: string, maxLength: 63 }
                       url: { type: string, maxLength: 1024, x-kubernetes-validations: [{ rule: "!self.contains('@') || self.startsWith('ssh://') || self.startsWith('git@')", message: "credentials must not appear in the URL" }] }
                       targetBranch: { type: string, maxLength: 255 }
-                      readablePaths: { type: array, items: { type: string }, default: [] }
-                      editablePaths: { type: array, items: { type: string }, default: [] }
-                      editableExtensions: { type: array, items: { type: string }, default: [".yaml", ".yml", ".json"] }
                       protectedPaths: { type: array, items: { type: string }, default: [] }
                       pr:
                         type: object
@@ -67,17 +64,15 @@ spec:
                           labels: { type: array, items: { type: string }, default: [] }
                           includeJustification: { type: boolean, default: true }
                           attestations: { type: array, items: { type: string }, default: [] }
-                      deployTargets:
+                      deployPaths:
                         type: array
                         default: []
                         items:
                           type: object
-                          required: [name, path, destinationNamespace, local]
+                          required: [name, path, tool]
                           properties:
                             name: { type: string }
-                            trackedRevision: { type: string }
                             path: { type: string }
                             tool: { type: string, enum: [Plain, Helm, Kustomize] }
-                            valueFiles: { type: array, items: { type: string }, default: [] }
-                            destinationNamespace: { type: string }
-                            local: { type: boolean }
+                            namespace: { type: string }
+                            extraArgs: { type: array, items: { type: string }, maxItems: 64, default: [] }

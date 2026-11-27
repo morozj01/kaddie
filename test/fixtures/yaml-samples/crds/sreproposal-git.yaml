@@ -30,9 +30,7 @@ status:
     rendererVersion: "1.4.0 (helm 3.16.2, kustomize 5.4.3)"
     renderedAt: "2026-11-11T09:01:30Z"
     targets:
-      - { name: argocd/payments-prod, source: Discovered, tool: Kustomize, destinationNamespace: payments, rendered: true, requestIndexes: [0, 1] }
-    unaffectedTargets:
-      - { name: argocd/payments-canary, trackedRevision: "v2.3.1" }
+      - { name: payments-prod, tool: Kustomize, namespace: payments, rendered: true, requestIndexes: [0, 1] }
     requests:
       - verb: patch
         apiVersion: apps/v1
@@ -66,6 +64,4 @@ status:
     mergedBy: carol
     approvedBy: [dave, erin]
     targets:
-      - { name: argocd/payments-prod, source: Discovered, destinationNamespace: payments }
-    unaffectedTargets:
-      - { name: argocd/payments-canary, trackedRevision: "v2.3.1" }
+      - { name: payments-prod, namespace: payments }

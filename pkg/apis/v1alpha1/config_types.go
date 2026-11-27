@@ -100,19 +100,8 @@ type Repository struct {
 	// TargetBranch is the branch PRs target.
 	// +kubebuilder:validation:MaxLength=255
 	TargetBranch string `json:"targetBranch"`
-	// ReadablePaths are globs the agent may read.
-	// +kubebuilder:default={}
-	// +optional
-	ReadablePaths []string `json:"readablePaths,omitempty"`
-	// EditablePaths are globs proposals may change; empty means reads only.
-	// +kubebuilder:default={}
-	// +optional
-	EditablePaths []string `json:"editablePaths,omitempty"`
-	// EditableExtensions are the extensions of files that may be created or edited.
-	// +kubebuilder:default={".yaml",".yml",".json"}
-	// +optional
-	EditableExtensions []string `json:"editableExtensions,omitempty"`
-	// ProtectedPaths are extra protected globs that always win over EditablePaths.
+	// ProtectedPaths are a hard blacklist: globs the agent can't read or
+	// propose edits to. Everything else is readable and editable.
 	// +kubebuilder:default={}
 	// +optional
 	ProtectedPaths []string `json:"protectedPaths,omitempty"`
@@ -120,10 +109,10 @@ type Repository struct {
 	// +kubebuilder:default={}
 	// +optional
 	PR PRSettings `json:"pr,omitempty"`
-	// DeployTargets are paths deployed by something no reconciler adapter describes.
+	// DeployPaths are the paths in this repository deployed to this cluster.
 	// +kubebuilder:default={}
 	// +optional
-	DeployTargets []DeployTarget `json:"deployTargets,omitempty"`
+	DeployPaths []DeployPath `json:"deployPaths,omitempty"`
 }
 
 // PRSettings configures how kaddie-git-writer opens pull requests.
@@ -153,26 +142,26 @@ type PRSettings struct {
 	Attestations []string `json:"attestations,omitempty"`
 }
 
-// DeployTarget is a path deployed by something no reconciler adapter describes.
-type DeployTarget struct {
-	// Name is shown to reviewers.
+// DeployPath is a path in the repository deployed to this cluster. It
+// follows the repository's targetBranch.
+type DeployPath struct {
+	// Name is shown to reviewers and the agent.
 	Name string `json:"name"`
-	// TrackedRevision is the revision the deployment follows.
-	// +optional
-	TrackedRevision string `json:"trackedRevision,omitempty"`
-	// Path is the repository path it consumes.
+	// Path is the repository path it consumes; kaddie-renderer runs the tool
+	// from inside it.
 	Path string `json:"path"`
 	// Tool is how kaddie-renderer renders the path.
+	Tool RenderTool `json:"tool"`
+	// Namespace is the namespace for rendered objects that have none; also
+	// helm template's --namespace.
 	// +optional
-	Tool RenderTool `json:"tool,omitempty"`
-	// ValueFiles are Helm values files relative to Path, applied in order.
+	Namespace string `json:"namespace,omitempty"`
+	// ExtraArgs are every tool-specific flag for helm template or kubectl
+	// kustomize, passed as separate arguments, never through a shell.
+	// +kubebuilder:validation:MaxItems=64
 	// +kubebuilder:default={}
 	// +optional
-	ValueFiles []string `json:"valueFiles,omitempty"`
-	// DestinationNamespace is where it deploys.
-	DestinationNamespace string `json:"destinationNamespace"`
-	// Local says whether it is applied to this cluster.
-	Local bool `json:"local"`
+	ExtraArgs []string `json:"extraArgs,omitempty"`
 }
 
 // SREConfigList is a list of SREConfig.

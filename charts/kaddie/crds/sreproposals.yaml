@@ -385,34 +385,16 @@ spec:
                     type: string
                   targets:
                     description: |-
-                      Targets are the deploy targets the merge affects, copied from
+                      Targets are the deploy paths the merge affects, copied from
                       status.render at push time.
                     items:
-                      description: PRTarget is a deploy target listed on a PR.
-                      properties:
-                        destinationNamespace:
-                          type: string
-                        name:
-                          type: string
-                        source:
-                          description: TargetSource says where a deploy target came
-                            from.
-                          enum:
-                          - Discovered
-                          - Declared
-                          type: string
-                      type: object
-                    type: array
-                  unaffectedTargets:
-                    items:
-                      description: UnaffectedTarget is a target in the repository
-                        that tracks another revision.
+                      description: PRTarget is a deploy path listed on a PR.
                       properties:
                         name:
                           type: string
-                        trackedRevision:
-                          description: TrackedRevision is the revision it follows
-                            instead.
+                        namespace:
+                          description: Namespace is the namespace for rendered objects
+                            that have none.
                           type: string
                       type: object
                     type: array
@@ -443,8 +425,9 @@ spec:
                       type: object
                     type: array
                   reason:
-                    description: 'Reason is a stable code: BaseTooOld, EditsDontApply,
-                      TreeMismatch or TooLarge.'
+                    description: |-
+                      Reason is a stable code: BaseTooOld, EditsDontApply, TreeMismatch,
+                      TooLarge or ProtectedPath.
                     type: string
                 type: object
               render:
@@ -464,9 +447,8 @@ spec:
                     - Failed
                     type: string
                   reason:
-                    description: |-
-                      Reason is a stable code such as UnconsumedPath, ForeignDestination,
-                      TargetConflict, TooLarge or SandboxLimit.
+                    description: Reason is a stable code such as UnconsumedPath, TooLarge
+                      or SandboxLimit.
                     maxLength: 63
                     type: string
                   renderedAt:
@@ -535,37 +517,32 @@ spec:
                     maxItems: 200
                     type: array
                   targets:
-                    description: Targets are the affected deploy targets.
+                    description: Targets are the affected deploy paths.
                     items:
-                      description: RenderTarget is one affected deploy target.
+                      description: RenderTarget is one affected deploy path.
                       properties:
-                        destinationNamespace:
-                          type: string
                         name:
+                          type: string
+                        namespace:
+                          description: Namespace is the namespace for rendered objects
+                            that have none.
                           type: string
                         reason:
                           description: Reason says why it couldn't be rendered.
                           type: string
                         rendered:
-                          description: Rendered is false when the target is Unrenderable.
+                          description: Rendered is false when the deploy path is Unrenderable.
                           type: boolean
                         requestIndexes:
                           description: RequestIndexes lists which requests came from
-                            this target.
+                            this deploy path.
                           items:
                             format: int64
                             minimum: 0
                             type: integer
                           type: array
-                        source:
-                          description: TargetSource says where a deploy target came
-                            from.
-                          enum:
-                          - Discovered
-                          - Declared
-                          type: string
                         tool:
-                          description: RenderTool says how a deploy target is rendered.
+                          description: RenderTool says how a deploy path is rendered.
                           enum:
                           - Plain
                           - Helm
@@ -573,20 +550,6 @@ spec:
                           type: string
                       type: object
                     maxItems: 50
-                    type: array
-                  unaffectedTargets:
-                    description: UnaffectedTargets track another revision of the repository.
-                    items:
-                      description: UnaffectedTarget is a target in the repository
-                        that tracks another revision.
-                      properties:
-                        name:
-                          type: string
-                        trackedRevision:
-                          description: TrackedRevision is the revision it follows
-                            instead.
-                          type: string
-                      type: object
                     type: array
                 type: object
             type: object

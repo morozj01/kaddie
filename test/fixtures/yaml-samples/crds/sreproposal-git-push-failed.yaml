@@ -23,7 +23,7 @@ status:
     rendererVersion: "1.4.0 (helm 3.16.2, kustomize 5.4.3)"
     renderedAt: "2026-11-11T10:00:40Z"
     targets:
-      - { name: argocd/payments-prod, source: Discovered, tool: Helm, destinationNamespace: payments, rendered: true, requestIndexes: [0] }
+      - { name: payments-prod, tool: Helm, namespace: payments, rendered: true, requestIndexes: [0] }
     requests:
       - { verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"spec":{"replicas":6}}' }
   approval:
