@@ -31,7 +31,3 @@ rules:
     resources: [leases]
     resourceNames: [kaddie-sessions-leader]
     verbs: [get, update]
-  # GitOps only: reconciler-read(argocd).
-  - apiGroups: [argoproj.io]
-    resources: [applications, applicationsets, appprojects]
-    verbs: [get, list, watch]

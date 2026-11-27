@@ -12,7 +12,3 @@ rules:
   - apiGroups: [authentication.k8s.io]
     resources: [tokenreviews]
     verbs: [create]
-  # GitOps only: reconciler-read(argocd).
-  - apiGroups: [argoproj.io]
-    resources: [applications, applicationsets, appprojects]
-    verbs: [get, list, watch]

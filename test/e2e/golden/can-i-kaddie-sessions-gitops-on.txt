@@ -13,9 +13,6 @@ default	get apps/daemonsets
 default	get apps/deployments
 default	get apps/replicasets
 default	get apps/statefulsets
-default	get argoproj.io/applications
-default	get argoproj.io/applicationsets
-default	get argoproj.io/appprojects
 default	get autoscaling/horizontalpodautoscalers
 default	get batch/cronjobs
 default	get batch/jobs
@@ -67,9 +64,6 @@ default	list apps/daemonsets
 default	list apps/deployments
 default	list apps/replicasets
 default	list apps/statefulsets
-default	list argoproj.io/applications
-default	list argoproj.io/applicationsets
-default	list argoproj.io/appprojects
 default	list autoscaling/horizontalpodautoscalers
 default	list batch/cronjobs
 default	list batch/jobs
@@ -123,9 +117,6 @@ default	watch apps/daemonsets
 default	watch apps/deployments
 default	watch apps/replicasets
 default	watch apps/statefulsets
-default	watch argoproj.io/applications
-default	watch argoproj.io/applicationsets
-default	watch argoproj.io/appprojects
 default	watch autoscaling/horizontalpodautoscalers
 default	watch batch/cronjobs
 default	watch batch/jobs
@@ -178,9 +169,6 @@ kaddie-system	get apps/daemonsets
 kaddie-system	get apps/deployments
 kaddie-system	get apps/replicasets
 kaddie-system	get apps/statefulsets
-kaddie-system	get argoproj.io/applications
-kaddie-system	get argoproj.io/applicationsets
-kaddie-system	get argoproj.io/appprojects
 kaddie-system	get autoscaling/horizontalpodautoscalers
 kaddie-system	get batch/cronjobs
 kaddie-system	get batch/jobs
@@ -232,9 +220,6 @@ kaddie-system	list apps/daemonsets
 kaddie-system	list apps/deployments
 kaddie-system	list apps/replicasets
 kaddie-system	list apps/statefulsets
-kaddie-system	list argoproj.io/applications
-kaddie-system	list argoproj.io/applicationsets
-kaddie-system	list argoproj.io/appprojects
 kaddie-system	list autoscaling/horizontalpodautoscalers
 kaddie-system	list batch/cronjobs
 kaddie-system	list batch/jobs
@@ -288,9 +273,6 @@ kaddie-system	watch apps/daemonsets
 kaddie-system	watch apps/deployments
 kaddie-system	watch apps/replicasets
 kaddie-system	watch apps/statefulsets
-kaddie-system	watch argoproj.io/applications
-kaddie-system	watch argoproj.io/applicationsets
-kaddie-system	watch argoproj.io/appprojects
 kaddie-system	watch autoscaling/horizontalpodautoscalers
 kaddie-system	watch batch/cronjobs
 kaddie-system	watch batch/jobs

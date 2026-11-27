@@ -6,12 +6,8 @@
 
 gitops:
   # Adds the GitOps write path: kaddie-git-writer and kaddie-renderer, their
-  # ServiceAccounts and roles, and the reconciler-read rules (GitOps spec §1.2).
+  # ServiceAccounts and roles.
   enabled: false
-  # Reconciler adapters whose configuration kinds the reconciler-read rule
-  # template renders. Argo CD is the first adapter (implementation plan T12.3).
-  reconcilerAdapters:
-    - argocd
 
 rbac:
   # Subjects bound to the kaddie-operator ClusterRole, for example

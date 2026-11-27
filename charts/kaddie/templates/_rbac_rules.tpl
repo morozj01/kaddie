@@ -114,19 +114,6 @@ rules. Anything the read-role rule (base §5.4.4) would flag is refused. */}}
   verbs: [get, list, watch]
 {{- end -}}
 
-{{/* reconciler-read(<adapter>): the adapter's configuration kinds (GitOps
-spec Appendix A). Rendered only with GitOps on. The argocd entry is the
-placeholder adapter list until implementation plan T12.3. */}}
-{{- define "kaddie.rules.reconciler-read" -}}
-{{- if eq . "argocd" -}}
-- apiGroups: [argoproj.io]
-  resources: [applications, applicationsets, appprojects]
-  verbs: [get, list, watch]
-{{- else -}}
-{{- fail (printf "unknown reconciler adapter %q" .) -}}
-{{- end -}}
-{{- end -}}
-
 {{- define "kaddie.rules.proposal-create" -}}
 - apiGroups: [kaddie.org]
   resources: [sreproposals]

@@ -19,6 +19,3 @@ rules:
     resources: [leases]
     resourceNames: [kaddie-renderer-leader]
     verbs: [get, update]
-  - apiGroups: [argoproj.io]
-    resources: [applications, applicationsets, appprojects]
-    verbs: [get, list, watch]

@@ -8,12 +8,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "enabled": { "type": "boolean" },
-        "reconcilerAdapters": {
-          "type": "array",
-          "items": { "type": "string", "enum": ["argocd"] },
-          "uniqueItems": true
-        }
+        "enabled": { "type": "boolean" }
       }
     },
     "rbac": {

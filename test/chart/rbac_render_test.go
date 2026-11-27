@@ -153,9 +153,6 @@ func TestRBACMatchesSamples(t *testing.T) {
 			exp := expand(rules(t, want))
 			// Illustrative extra: the cert-manager rule shown as added later.
 			exp = slices.DeleteFunc(exp, func(p perm) bool { return p.Group == "cert-manager.io" })
-			if !gitops {
-				exp = slices.DeleteFunc(exp, func(p perm) bool { return p.Group == "argoproj.io" })
-			}
 			if diff := setDiff(exp, expand(rules(t, got))); diff != "" {
 				t.Errorf("%s differs from its sample:\n%s", want.GetName(), diff)
 			}
@@ -352,7 +349,6 @@ func ruleCatalog(t *testing.T, args []string) []rbacv1.PolicyRule {
 	for _, l := range leases {
 		fmt.Fprintf(&b, "  lease-%s: |\n    {{- include \"kaddie.rules.lease\" %q | nindent 4 }}\n", l, l)
 	}
-	b.WriteString("{{- range .Values.gitops.reconcilerAdapters }}\n  reconciler-read-{{ . }}: |\n    {{- include \"kaddie.rules.reconciler-read\" . | nindent 4 }}\n{{- end }}\n")
 	if err := os.WriteFile(filepath.Join(dir, "templates", "zz_catalog.yaml"), []byte(b.String()), 0o600); err != nil {
 		t.Fatal(err)
 	}
