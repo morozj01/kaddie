@@ -123,8 +123,10 @@ func setup() error {
 	}
 
 	// CRDs first: Helm installs crds/ on install only, and a reinstall after a
-	// test uninstalls must find them; apply keeps them current.
-	if _, err := kubectlE("apply", "--server-side", "-f", testutil.Path("charts", "kaddie", "crds")); err != nil {
+	// test uninstalls must find them; apply keeps them current. Helm's own
+	// install of crds/ also server-side applies them, so on a reused cluster
+	// it owns the fields a changed CRD touches: take them over.
+	if _, err := kubectlE("apply", "--server-side", "--force-conflicts", "-f", testutil.Path("charts", "kaddie", "crds")); err != nil {
 		return err
 	}
 	return installChartE()
