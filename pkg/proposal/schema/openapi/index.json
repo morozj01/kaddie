@@ -1,0 +1,216 @@
+{
+  "resources": [
+    {
+      "kind": {
+        "kind": "Pod",
+        "version": "v1"
+      },
+      "resource": "pods",
+      "version": "v1"
+    },
+    {
+      "kind": {
+        "kind": "Pod",
+        "version": "v1"
+      },
+      "resource": "pods",
+      "subresource": "ephemeralcontainers",
+      "version": "v1"
+    },
+    {
+      "kind": {
+        "kind": "Pod",
+        "version": "v1"
+      },
+      "resource": "pods",
+      "subresource": "status",
+      "version": "v1"
+    },
+    {
+      "kind": {
+        "kind": "ReplicationController",
+        "version": "v1"
+      },
+      "resource": "replicationcontrollers",
+      "version": "v1"
+    },
+    {
+      "kind": {
+        "group": "autoscaling",
+        "kind": "Scale",
+        "version": "v1"
+      },
+      "resource": "replicationcontrollers",
+      "subresource": "scale",
+      "version": "v1"
+    },
+    {
+      "kind": {
+        "kind": "ReplicationController",
+        "version": "v1"
+      },
+      "resource": "replicationcontrollers",
+      "subresource": "status",
+      "version": "v1"
+    },
+    {
+      "group": "apps",
+      "kind": {
+        "group": "apps",
+        "kind": "DaemonSet",
+        "version": "v1"
+      },
+      "resource": "daemonsets",
+      "version": "v1"
+    },
+    {
+      "group": "apps",
+      "kind": {
+        "group": "apps",
+        "kind": "DaemonSet",
+        "version": "v1"
+      },
+      "resource": "daemonsets",
+      "subresource": "status",
+      "version": "v1"
+    },
+    {
+      "group": "apps",
+      "kind": {
+        "group": "apps",
+        "kind": "Deployment",
+        "version": "v1"
+      },
+      "resource": "deployments",
+      "version": "v1"
+    },
+    {
+      "group": "apps",
+      "kind": {
+        "group": "autoscaling",
+        "kind": "Scale",
+        "version": "v1"
+      },
+      "resource": "deployments",
+      "subresource": "scale",
+      "version": "v1"
+    },
+    {
+      "group": "apps",
+      "kind": {
+        "group": "apps",
+        "kind": "Deployment",
+        "version": "v1"
+      },
+      "resource": "deployments",
+      "subresource": "status",
+      "version": "v1"
+    },
+    {
+      "group": "apps",
+      "kind": {
+        "group": "apps",
+        "kind": "ReplicaSet",
+        "version": "v1"
+      },
+      "resource": "replicasets",
+      "version": "v1"
+    },
+    {
+      "group": "apps",
+      "kind": {
+        "group": "autoscaling",
+        "kind": "Scale",
+        "version": "v1"
+      },
+      "resource": "replicasets",
+      "subresource": "scale",
+      "version": "v1"
+    },
+    {
+      "group": "apps",
+      "kind": {
+        "group": "apps",
+        "kind": "ReplicaSet",
+        "version": "v1"
+      },
+      "resource": "replicasets",
+      "subresource": "status",
+      "version": "v1"
+    },
+    {
+      "group": "apps",
+      "kind": {
+        "group": "apps",
+        "kind": "StatefulSet",
+        "version": "v1"
+      },
+      "resource": "statefulsets",
+      "version": "v1"
+    },
+    {
+      "group": "apps",
+      "kind": {
+        "group": "autoscaling",
+        "kind": "Scale",
+        "version": "v1"
+      },
+      "resource": "statefulsets",
+      "subresource": "scale",
+      "version": "v1"
+    },
+    {
+      "group": "apps",
+      "kind": {
+        "group": "apps",
+        "kind": "StatefulSet",
+        "version": "v1"
+      },
+      "resource": "statefulsets",
+      "subresource": "status",
+      "version": "v1"
+    },
+    {
+      "group": "batch",
+      "kind": {
+        "group": "batch",
+        "kind": "CronJob",
+        "version": "v1"
+      },
+      "resource": "cronjobs",
+      "version": "v1"
+    },
+    {
+      "group": "batch",
+      "kind": {
+        "group": "batch",
+        "kind": "CronJob",
+        "version": "v1"
+      },
+      "resource": "cronjobs",
+      "subresource": "status",
+      "version": "v1"
+    },
+    {
+      "group": "batch",
+      "kind": {
+        "group": "batch",
+        "kind": "Job",
+        "version": "v1"
+      },
+      "resource": "jobs",
+      "version": "v1"
+    },
+    {
+      "group": "batch",
+      "kind": {
+        "group": "batch",
+        "kind": "Job",
+        "version": "v1"
+      },
+      "resource": "jobs",
+      "subresource": "status",
+      "version": "v1"
+    }
+  ]
+}
