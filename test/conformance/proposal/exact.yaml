@@ -838,3 +838,76 @@
     - {reason: WorkloadField, request: 0, field: '**.hostIPC', source: Request}
     - {reason: WorkloadField, request: 0, field: '**.nodeName', source: Request}
     - {reason: WorkloadField, request: 0, field: '**.securityContext', source: Request}
+
+# The exception holds only for a ClusterRole of rbac.authorization.k8s.io/v1. A dry run that is null, empty, another kind, another apiVersion or has none must not pass for a read-only role just because it holds no violating rule.
+- name: "T25 exact: a dry run that is not a ClusterRole of rbac.authorization.k8s.io/v1 is ReadRoleRule"
+  tests: [T25]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+      justification: A test proposal.
+  observed:
+    - request: 0
+      live:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+      dryRun: null
+    - request: 1
+      live:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+      dryRun: {}
+    - request: 2
+      live:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+      dryRun: {apiVersion: v1, kind: Pod}
+    - request: 3
+      live:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+      dryRun: {apiVersion: rbac.authorization.k8s.io/v1, kind: Role, rules: [{apiGroups: [cert-manager.io], resources: [certificates], verbs: [get]}]}
+    - request: 4
+      live:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+      dryRun: {apiVersion: v1, kind: ClusterRole, rules: [{apiGroups: [cert-manager.io], resources: [certificates], verbs: [get]}]}
+    - request: 5
+      live:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+      dryRun: {kind: ClusterRole, rules: [{apiGroups: [cert-manager.io], resources: [certificates], verbs: [get]}]}
+  static: []
+  exact:
+    - {reason: ReadRoleRule, request: 0, source: Request}
+    - {reason: ReadRoleRule, request: 1, source: Request}
+    - {reason: ReadRoleRule, request: 2, source: Request}
+    - {reason: ReadRoleRule, request: 3, source: Request}
+    - {reason: ReadRoleRule, request: 4, source: Request}
+    - {reason: ReadRoleRule, request: 5, source: Request}

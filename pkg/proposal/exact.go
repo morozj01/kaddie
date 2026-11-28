@@ -124,12 +124,16 @@ func observedChanges(req v1alpha1.RequestFields, root schema.Node, obs Observed)
 }
 
 // roleStaysReadOnly judges the kaddie-agent-read exception from the object
-// the dry run returned: every rule passes the read-role rule and there is no
-// aggregationRule. An object that isn't a ClusterRole fails, so a missing
-// dry run can't pass.
+// the dry run returned: a ClusterRole of rbac.authorization.k8s.io/v1 whose
+// every rule passes the read-role rule and that has no aggregationRule.
+// Anything else fails, so a missing, null or empty dry run, or an object of
+// another kind, can't pass for a role with no rules to violate.
 func roleStaysReadOnly(dryRun json.RawMessage) bool {
 	var role rbacv1.ClusterRole
 	if json.Unmarshal(dryRun, &role) != nil || role.AggregationRule != nil {
+		return false
+	}
+	if role.APIVersion != rbacv1.SchemeGroupVersion.String() || role.Kind != "ClusterRole" {
 		return false
 	}
 	return !slices.ContainsFunc(role.Rules, func(r rbacv1.PolicyRule) bool { return len(readRoleViolations(r)) > 0 })

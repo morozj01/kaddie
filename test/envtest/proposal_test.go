@@ -139,3 +139,59 @@ func mustJSON(t *testing.T, u *unstructured.Unstructured) []byte {
 	}
 	return b
 }
+
+// TestProposal_ExactReadRoleOnRealDryRuns checks the kaddie-agent-read
+// exception against what a real server returns for a ClusterRole dry run,
+// which carries apiVersion and kind, so the exact check that requires them
+// doesn't reject every real role.
+func TestProposal_ExactReadRoleOnRealDryRuns(t *testing.T) {
+	dyn, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	roles := dyn.Resource(k8sschema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"})
+	seed := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "ClusterRole",
+		"metadata": map[string]any{"name": "kaddie-agent-read"},
+		"rules":    []any{map[string]any{"apiGroups": []any{""}, "resources": []any{"pods"}, "verbs": []any{"get", "list", "watch"}}},
+	}}
+	if _, err := roles.Create(ctx, seed, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
+		t.Fatal(err)
+	}
+	live, err := roles.Get(ctx, "kaddie-agent-read", metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := []struct {
+		name string
+		rule string
+		want []string
+	}{
+		{"a read-only rule", `{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}`, nil},
+		{"a rule on secrets", `{"apiGroups":[""],"resources":["secrets"],"verbs":["get"]}`, []string{"ReadRoleRule"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body := `[{"op":"add","path":"/rules/-","value":` + tt.rule + `}]`
+			out, err := roles.Patch(ctx, "kaddie-agent-read", types.JSONPatchType, []byte(body), metav1.PatchOptions{DryRun: []string{metav1.DryRunAll}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			p := &v1alpha1.SREProposal{
+				ObjectMeta: metav1.ObjectMeta{Name: "p", Namespace: systemNamespace},
+				Spec: v1alpha1.SREProposalSpec{Type: v1alpha1.ProposalTypeAPI, Justification: "test",
+					API: &v1alpha1.APIProposal{Requests: []v1alpha1.APIRequest{{RequestFields: v1alpha1.RequestFields{
+						Verb: "patch", APIVersion: "rbac.authorization.k8s.io/v1", Resource: "clusterroles",
+						Name: "kaddie-agent-read", PatchType: v1alpha1.PatchTypeJSONPatch, Body: body}}}}},
+			}
+			obs := proposal.Observed{Request: 0, Live: mustJSON(t, live), DryRun: mustJSON(t, out)}
+			var got []string
+			for _, f := range proposal.EvaluateExact(p, []proposal.Observed{obs}, schema.Vendored()) {
+				got = append(got, string(f.Reason))
+			}
+			if !slices.Equal(got, tt.want) {
+				t.Fatalf("exact findings = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
