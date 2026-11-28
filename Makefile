@@ -91,6 +91,11 @@ test-envtest: $(SETUP_ENVTEST) envtest-clean ## Run CRD/CEL tests against a real
 	KUBEBUILDER_ASSETS="$$($(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN)/k8s -p path)" \
 	  go test -count=1 -tags envtest ./test/envtest/... $(RUN_FLAG) -v
 
+.PHONY: vendor-openapi
+vendor-openapi: $(SETUP_ENVTEST) envtest-clean ## Re-record pkg/proposal/schema/openapi from a real 1.28 kube-apiserver.
+	KUBEBUILDER_ASSETS="$$($(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN)/k8s -p path)" \
+	  go run ./hack/vendor-openapi
+
 .PHONY: envtest-clean
 envtest-clean: ## Stop etcd and kube-apiserver left running by interrupted envtest runs.
 	bash test/infra/envtest-clean.sh

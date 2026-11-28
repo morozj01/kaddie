@@ -1,0 +1,102 @@
+# generateName creates and requests on the namespaces resource itself can't
+# evade a rule's names or namespaces (T14), and the namespace match
+# fields (T12). A create is checked against every name and namespace it could
+# produce: the request's, the body's metadata.name, metadata.namespace, and
+# metadata.generateName followed by *. A request on the namespaces resource is
+# in the namespace its name names. A pattern is exact or a prefix ending in *,
+# and two patterns match when some string matches both.
+
+# kube-* overlaps kube-system, kube-public and kube-node-lease; kube-p* only kube-public; kube-node* only kube-node-lease; kaddie-* and kaddie-sys* kaddie-system; the single letter k* overlaps both. An empty generateName names nothing.
+- name: 'T14 a namespace created with a generateName prefix of a protected namespace'
+  tests: [T14, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: namespaces, body: '{"metadata":{"generateName":"kube-"}}'}
+          - {verb: create, apiVersion: v1, resource: namespaces, body: '{"metadata":{"generateName":"kube-p"}}'}
+          - {verb: create, apiVersion: v1, resource: namespaces, body: '{"metadata":{"generateName":"kube-node"}}'}
+          - {verb: create, apiVersion: v1, resource: namespaces, body: '{"metadata":{"generateName":"kaddie-"}}'}
+          - {verb: create, apiVersion: v1, resource: namespaces, body: '{"metadata":{"generateName":"kaddie-sys"}}'}
+          - {verb: create, apiVersion: v1, resource: namespaces, body: '{"metadata":{"generateName":"k"}}'}
+          - {verb: create, apiVersion: v1, resource: namespaces, body: '{"metadata":{"generateName":""}}'}
+      justification: A test proposal.
+  static:
+    - {reason: SystemNamespace, request: 0}
+    - {reason: SystemNamespace, request: 1}
+    - {reason: SystemNamespace, request: 2}
+    - {reason: KaddieNamespace, request: 3}
+    - {reason: KaddieNamespace, request: 4}
+    - {reason: SystemNamespace, request: 5}
+    - {reason: KaddieNamespace, request: 5}
+
+# No string starts with both kube-x and kube-system.
+- name: 'T14 a generateName prefix that no protected namespace starts with'
+  tests: [T14, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: namespaces, body: '{"metadata":{"generateName":"kube-x"}}'}
+          - {verb: create, apiVersion: v1, resource: namespaces, body: '{"metadata":{"generateName":"kaddie-sysx"}}'}
+          - {verb: create, apiVersion: v1, resource: namespaces, body: '{"metadata":{"generateName":"team-"}}'}
+          - {verb: create, apiVersion: v1, resource: namespaces, body: '{"metadata":{"name":"team-a"}}'}
+      justification: A test proposal.
+  static: []
+
+# On the namespaces resource the object's name is its namespace: metadata.name in the body or name in the request.
+- name: 'T14 a namespace created, patched or deleted by name'
+  tests: [T14, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: namespaces, body: '{"metadata":{"name":"kaddie-system"}}'}
+          - {verb: create, apiVersion: v1, resource: namespaces, body: '{"metadata":{"name":"kube-public"}}'}
+          - {verb: create, apiVersion: v1, resource: namespaces, name: kube-node-lease, body: '{"metadata":{"labels":{"a":"b"}}}'}
+          - {verb: patch, apiVersion: v1, resource: namespaces, name: kube-system, patchType: application/merge-patch+json, body: '{"metadata":{"labels":{"a":"b"}}}'}
+          - {verb: delete, apiVersion: v1, resource: namespaces, name: kaddie-system}
+          - {verb: patch, apiVersion: v1, resource: namespaces, name: kaddie-system-2, patchType: application/merge-patch+json, body: '{"metadata":{"labels":{"a":"b"}}}'}
+          - {verb: delete, apiVersion: v1, resource: namespaces, name: kube-systems}
+      justification: A test proposal.
+  static:
+    - {reason: KaddieNamespace, request: 0}
+    - {reason: SystemNamespace, request: 1}
+    - {reason: SystemNamespace, request: 2}
+    - {reason: SystemNamespace, request: 3}
+    - {reason: KaddieNamespace, request: 4}
+
+# Either namespace flags a create. generateName gives a name prefix, not a namespace, so request 3 is not flagged.
+- name: "T14 a create whose body names a protected namespace the request doesn't"
+  tests: [T14, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"metadata":{"name":"c","namespace":"kube-system"}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, body: '{"metadata":{"name":"c","namespace":"kaddie-system"}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: kube-public, body: '{"metadata":{"name":"c","namespace":"payments"}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"metadata":{"generateName":"kube-","namespace":"payments"}}'}
+      justification: A test proposal.
+  static:
+    - {reason: SystemNamespace, request: 0}
+    - {reason: KaddieNamespace, request: 1}
+    - {reason: SystemNamespace, request: 2}
+
+# Only a create's body can name its namespace. metadata.namespace is an ignored field, and a patch can't move an object.
+- name: "T14 a patch or delete is in the namespace of the request, not the body's"
+  tests: [T14, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '{"metadata":{"namespace":"kube-system"},"data":{"a":"b"}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: kube-system, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+      justification: A test proposal.
+  static:
+    - {reason: SystemNamespace, request: 1}

@@ -1,0 +1,240 @@
+# The kaddie-agent-read exception (base 5.4.4) and what stays an RBAC finding
+# (T25, static part; exact evaluation of the resulting role is T2.6). A patch
+# of the ClusterRole kaddie-agent-read is exempt from the RBAC protection
+# when every operation adds, replaces or removes whole rules and every rule it
+# writes passes the read-role rule: verbs a subset of get, list and watch (and
+# not empty), no wildcard in apiGroups, resources or verbs, no resourceNames or
+# nonResourceURLs, no secrets (any group), serviceaccounts/token,
+# certificatesigningrequests/approval or */exec, */attach, */portforward,
+# */proxy, no rbac.authorization.k8s.io group, and the kaddie.org group only
+# for sreproposals. When the patch targets that role and breaks the rule the
+# finding is ReadRoleRule; everything else touching RBAC is RBAC.
+
+# Every patch type, appending, inserting, replacing one rule or the list, removing a rule, a test guard, several operations, and a patch that leaves no rules.
+- name: 'T25 patches that only add, replace or remove whole passing rules are not flagged'
+  tests: [T25, T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/0","value":{"apiGroups":[""],"resources":["pods/log"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/rules/3","value":{"apiGroups":["kaddie.org"],"resources":["sreproposals"],"verbs":["get","list","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/rules","value":[{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]},{"apiGroups":[""],"resources":["pods/log"],"verbs":["get"]}]}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"remove","path":"/rules/20"}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"test","path":"/rules/20","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}},{"op":"add","path":"/rules/-","value":{"apiGroups":["apps"],"resources":["deployments/status"],"verbs":["get","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"remove","path":"/rules/1"},{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}},{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods/log"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/merge-patch+json, body: '{"rules":[{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]},{"apiGroups":[""],"resources":["pods/log"],"verbs":["get"]}]}'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/strategic-merge-patch+json, body: '{"rules":[{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}]}'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/merge-patch+json, body: '{"rules":[]}'}
+      justification: A test proposal.
+  static: []
+
+# Request i adds, in order: 0 a verb beyond the reads; 1 a wildcard verb; 2 no verbs; 3 no verbs key; 4 delete; 5 patch; 6 update; 7 deletecollection; 8 escalate; 9 a wildcard apiGroup; 10 a wildcard resource; 11 a wildcard among resources; 12 a wildcard subresource; 13 resourceNames; 14 nonResourceURLs; 15 secrets in the core group; 16 secrets in another group; 17 a secrets subresource; 18 serviceaccounts/token; 19 certificatesigningrequests/approval.
+- name: 'T25 an added rule that breaks the read-role rule: part 1'
+  tests: [T25, T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods"],"verbs":["get","list","watch","create"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods"],"verbs":["*"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods"],"verbs":[]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods"],"verbs":["delete"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods"],"verbs":["patch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods"],"verbs":["update"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods"],"verbs":["deletecollection"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["rbac.example.com"],"resources":["x"],"verbs":["escalate"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["*"],"resources":["pods"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["*"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods","*"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods/*"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods"],"verbs":["get"],"resourceNames":["web"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"nonResourceURLs":["/healthz"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["secrets"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["example.com"],"resources":["secrets"],"verbs":["get","list"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["secrets/status"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["serviceaccounts/token"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["certificates.k8s.io"],"resources":["certificatesigningrequests/approval"],"verbs":["get"]}}]'}
+      justification: A test proposal.
+  static:
+    - {reason: ReadRoleRule, request: 0}
+    - {reason: ReadRoleRule, request: 1}
+    - {reason: ReadRoleRule, request: 2}
+    - {reason: ReadRoleRule, request: 3}
+    - {reason: ReadRoleRule, request: 4}
+    - {reason: ReadRoleRule, request: 5}
+    - {reason: ReadRoleRule, request: 6}
+    - {reason: ReadRoleRule, request: 7}
+    - {reason: ReadRoleRule, request: 8}
+    - {reason: ReadRoleRule, request: 9}
+    - {reason: ReadRoleRule, request: 10}
+    - {reason: ReadRoleRule, request: 11}
+    - {reason: ReadRoleRule, request: 12}
+    - {reason: ReadRoleRule, request: 13}
+    - {reason: ReadRoleRule, request: 14}
+    - {reason: ReadRoleRule, request: 15}
+    - {reason: ReadRoleRule, request: 16}
+    - {reason: ReadRoleRule, request: 17}
+    - {reason: ReadRoleRule, request: 18}
+    - {reason: ReadRoleRule, request: 19}
+
+# Request i adds, in order: 0 pods/exec; 1 pods/attach; 2 pods/portforward; 3 pods/proxy; 4 services/proxy; 5 nodes/proxy; 6 */exec; 7 the RBAC group; 8 the RBAC group among others; 9 kaddie.org sreconfigs; 10 kaddie.org sreproposals and sreconfigs; 11 kaddie.org sreproposals/status; 12 kaddie.org among other groups; 13 a rule with a key a rule doesn't have; 14 a rule with a key in another case.
+- name: 'T25 an added rule that breaks the read-role rule: part 2'
+  tests: [T25, T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods/exec"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods/attach"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods/portforward"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods/proxy"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["services/proxy"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["nodes/proxy"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["*/exec"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["rbac.authorization.k8s.io"],"resources":["clusterroles"],"verbs":["get","list"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["","rbac.authorization.k8s.io"],"resources":["pods"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["kaddie.org"],"resources":["sreconfigs"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["kaddie.org"],"resources":["sreproposals","sreconfigs"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["kaddie.org"],"resources":["sreproposals/status"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["","kaddie.org"],"resources":["sretriggers"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods"],"verbs":["get"],"extra":1}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"APIGroups":[""],"resources":["pods"],"verbs":["get"]}}]'}
+      justification: A test proposal.
+  static:
+    - {reason: ReadRoleRule, request: 0}
+    - {reason: ReadRoleRule, request: 1}
+    - {reason: ReadRoleRule, request: 2}
+    - {reason: ReadRoleRule, request: 3}
+    - {reason: ReadRoleRule, request: 4}
+    - {reason: ReadRoleRule, request: 5}
+    - {reason: ReadRoleRule, request: 6}
+    - {reason: ReadRoleRule, request: 7}
+    - {reason: ReadRoleRule, request: 8}
+    - {reason: ReadRoleRule, request: 9}
+    - {reason: ReadRoleRule, request: 10}
+    - {reason: ReadRoleRule, request: 11}
+    - {reason: ReadRoleRule, request: 12}
+    - {reason: ReadRoleRule, request: 13}
+    - {reason: ReadRoleRule, request: 14}
+
+# One bad rule is enough, in any patch type.
+- name: 'T25 a patch that mixes a passing rule with a failing one is flagged'
+  tests: [T25, T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}},{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["secrets"],"verbs":["get"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods"],"verbs":["get"]}},{"op":"add","path":"/rules/0","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}},{"op":"replace","path":"/rules/2","value":{"apiGroups":[""],"resources":["pods"],"verbs":["delete"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/merge-patch+json, body: '{"rules":[{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]},{"apiGroups":[""],"resources":["pods/exec"],"verbs":["get"]}]}'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/strategic-merge-patch+json, body: '{"rules":[{"apiGroups":[""],"resources":["secrets"],"verbs":["list"]},{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}]}'}
+      justification: A test proposal.
+  static:
+    - {reason: ReadRoleRule, request: 0}
+    - {reason: ReadRoleRule, request: 1}
+    - {reason: ReadRoleRule, request: 2}
+    - {reason: ReadRoleRule, request: 3}
+
+# Adding the list itself, removing it whole, changing part of a rule, aggregationRule, metadata, move, copy, a list where a rule belongs and a rule where a list belongs, a malformed index, a dash on remove, extra keys in a merge or strategic merge patch, a null list, a strategic directive, and an empty merge patch.
+- name: 'T25 operations that are not whole-rule changes are flagged'
+  tests: [T25, T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules","value":[{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}]}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"remove","path":"/rules"}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/rules/0/verbs","value":["get"]}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/0/verbs/-","value":"get"}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/aggregationRule","value":{"clusterRoleSelectors":[{"matchLabels":{"a":"b"}}]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/metadata/labels","value":{"a":"b"}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"move","from":"/rules/0","path":"/rules/1"}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"copy","from":"/rules/0","path":"/rules/-"}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":[{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}]}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/rules","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/01","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"remove","path":"/rules/-"}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/merge-patch+json, body: '{"rules":[{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}],"aggregationRule":{"clusterRoleSelectors":[]}}'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/merge-patch+json, body: '{"metadata":{"labels":{"a":"b"}}}'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/merge-patch+json, body: '{"rules":null}'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/strategic-merge-patch+json, body: '{"rules":[{"$patch":"delete"}]}'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/strategic-merge-patch+json, body: '{"rules":[{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}],"metadata":{"name":"other"}}'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/merge-patch+json, body: '{}'}
+      justification: A test proposal.
+  static:
+    - {reason: ReadRoleRule, request: 0}
+    - {reason: ReadRoleRule, request: 1}
+    - {reason: ReadRoleRule, request: 2}
+    - {reason: ReadRoleRule, request: 3}
+    - {reason: ReadRoleRule, request: 4}
+    - {reason: ReadRoleRule, request: 5}
+    - {reason: ReadRoleRule, request: 6}
+    - {reason: ReadRoleRule, request: 7}
+    - {reason: ReadRoleRule, request: 8}
+    - {reason: ReadRoleRule, request: 9}
+    - {reason: ReadRoleRule, request: 10}
+    - {reason: ReadRoleRule, request: 11}
+    - {reason: ReadRoleRule, request: 12}
+    - {reason: ReadRoleRule, request: 13}
+    - {reason: ReadRoleRule, request: 14}
+    - {reason: ReadRoleRule, request: 15}
+    - {reason: ReadRoleRule, request: 16}
+    - {reason: ReadRoleRule, request: 17}
+
+# It can't be shown to add only read rules.
+- name: "T25 a body that isn't valid for its patch type is flagged twice"
+  tests: [T25, T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/merge-patch+json, body: '[{"rules":[]}]'}
+      justification: A test proposal.
+  static:
+    - {reason: ReadRoleRule, request: 0}
+    - {reason: InvalidJSON, request: 0}
+    - {reason: ReadRoleRule, request: 1}
+    - {reason: InvalidJSON, request: 1}
+
+# A name that only resembles the role, a Role or binding of that name, the status subresource, a namespaced request, and create and delete of the role itself, each get the RBAC finding.
+- name: 'T25 other RBAC requests stay RBAC findings, whatever they hold'
+  tests: [T25, T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read-2, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: Kaddie-Agent-Read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: other-role, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: roles, namespace: payments, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterrolebindings, name: kaddie-agent-read, patchType: application/merge-patch+json, body: '{"subjects":[]}'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, subresource: status, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, namespace: payments, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+          - {verb: create, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, body: '{"metadata":{"name":"kaddie-agent-read"},"rules":[{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}]}'}
+          - {verb: create, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, body: '{"metadata":{"generateName":"kaddie-agent-read"},"rules":[{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}]}'}
+          - {verb: delete, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read}
+      justification: A test proposal.
+  static:
+    - {reason: RBAC, request: 0}
+    - {reason: RBAC, request: 1}
+    - {reason: RBAC, request: 2}
+    - {reason: RBAC, request: 3}
+    - {reason: RBAC, request: 4}
+    - {reason: RBAC, request: 5}
+    - {reason: RBAC, request: 6}
+    - {reason: RBAC, request: 7}
+    - {reason: RBAC, request: 8}
+    - {reason: RBAC, request: 9}
+    - {reason: RBAC, request: 10}

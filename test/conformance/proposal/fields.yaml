@@ -1,0 +1,916 @@
+# Field rules (base 4.2.1): the workload field protection on create and on each
+# patch type (T37), ancestors and descendants (T38), patches that touch
+# replicas or resources (T39), deletes (T41), and the fields that are ignored.
+# Expected findings come from the spec's field list, in rule paths; a change
+# that replaces a whole subtree matches every rule path that can exist beneath
+# it in the object's schema.
+
+# One create per protected path of base 6.3. A container's securityContext is also named by **.securityContext, which matches at any depth.
+- name: 'WorkloadField: creating a Deployment with each protected field, part 1'
+  tests: [T15, T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"containers":[{"name":"a","image":"nginx:1.27"}]}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"initContainers":[{"name":"i","image":"busybox"}]}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"ephemeralContainers":[{"name":"dbg","image":"busybox"}]}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"containers":[{"name":"a","command":["sh"]}]}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"containers":[{"name":"a","args":["-c"]}]}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"containers":[{"name":"a","env":[{"name":"A","value":"b"}]}]}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"containers":[{"name":"a","envFrom":[{"configMapRef":{"name":"cm"}}]}]}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"containers":[{"name":"a","volumeMounts":[{"name":"v","mountPath":"/data"}]}]}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"containers":[{"name":"a","securityContext":{"privileged":true}}]}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"initContainers":[{"name":"a","command":["sh"]}]}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"initContainers":[{"name":"a","args":["-c"]}]}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"initContainers":[{"name":"a","env":[{"name":"A","value":"b"}]}]}}}}'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 2, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 4, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 5, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 6, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 7, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 8, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 8, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 9, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 10, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 11, field: '**.initContainers[*].env'}
+
+# One create per protected path of base 6.3. A container's securityContext is also named by **.securityContext, which matches at any depth.
+- name: 'WorkloadField: creating a Deployment with each protected field, part 2'
+  tests: [T15, T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"initContainers":[{"name":"a","envFrom":[{"configMapRef":{"name":"cm"}}]}]}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"initContainers":[{"name":"a","volumeMounts":[{"name":"v","mountPath":"/data"}]}]}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"initContainers":[{"name":"a","securityContext":{"privileged":true}}]}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"volumes":[{"name":"v","emptyDir":{}}]}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"serviceAccountName":"admin"}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"automountServiceAccountToken":false}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"hostNetwork":true}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"hostPID":true}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"hostIPC":true}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"nodeName":"n1"}}}}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"api"},"spec":{"template":{"spec":{"securityContext":{"runAsNonRoot":true}}}}}'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 3, field: '**.volumes'}
+    - {reason: WorkloadField, request: 4, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 5, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 6, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 7, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 8, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 9, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 10, field: '**.securityContext'}
+
+# nodeSelector is not nodeName; resources, probes and ports are not on the list.
+- name: 'WorkloadField near miss: a create with only unprotected fields'
+  tests: [T15, T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"apiVersion":"apps/v1","kind":"Deployment","metadata":{"name":"api","labels":{"app":"api"},"annotations":{"a":"b"}},"spec":{"replicas":3,"selector":{"matchLabels":{"app":"api"}},"strategy":{"type":"Recreate"},"template":{"metadata":{"labels":{"app":"api"}},"spec":{"containers":[{"name":"api","resources":{"limits":{"cpu":"1"}},"ports":[{"containerPort":80}],"imagePullPolicy":"Always","livenessProbe":{"httpGet":{"path":"/","port":80}}}],"terminationGracePeriodSeconds":30,"nodeSelector":{"disk":"ssd"},"tolerations":[{"key":"k","operator":"Exists"}],"priorityClassName":"high","dnsPolicy":"ClusterFirst"}}}}'}
+      justification: A test proposal.
+  static: []
+
+- name: 'T37 JSON Patch: a protected field is flagged, an unprotected one is not'
+  tests: [T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template/spec/serviceAccountName","value":"admin"}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/replicas","value":5}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"add","path":"/spec/template/spec/containers/0/env/-","value":{"name":"A","value":"b"}}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"add","path":"/metadata/labels/team","value":"sre"}]'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].env'}
+
+- name: 'T37 JSON merge patch: a protected field is flagged, an unprotected one is not'
+  tests: [T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"spec":{"template":{"spec":{"serviceAccountName":"admin"}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"spec":{"replicas":5}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"spec":{"template":{"spec":{"hostNetwork":true}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"metadata":{"labels":{"team":"sre"}}}'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 2, field: '**.hostNetwork'}
+
+# A strategic merge patch merges containers by name, so only the image of container api changes (request 2).
+- name: 'T37 strategic merge patch: a protected field is flagged, an unprotected one is not'
+  tests: [T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"template":{"spec":{"serviceAccountName":"admin"}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"replicas":5}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"template":{"spec":{"containers":[{"name":"api","image":"nginx:1.28"}]}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"2026-11-11T09:00:00Z"}}}}}'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].image'}
+
+# The new value's content isn't looked at: a Subtree change matches each rule path the schema says can exist beneath it. The pod spec of a Pod, Deployment, CronJob and Job can hold all 23 paths, **.serviceAccountName and **.containers[*].image among them. A Pod has no spec.template, so request 0 replaces its spec.
+- name: 'T38 replacing a whole pod template by JSON Patch is flagged under every field that can exist in it'
+  tests: [T38, T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: pods, namespace: payments, name: web, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec","value":{"containers":[{"name":"a","image":"x"}]}}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template","value":{"spec":{"containers":[{"name":"a","image":"x"}]}}}]'}
+          - {verb: patch, apiVersion: batch/v1, resource: cronjobs, namespace: payments, name: nightly, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/jobTemplate/spec/template","value":{"spec":{"containers":[{"name":"a","image":"x"}]}}}]'}
+          - {verb: patch, apiVersion: batch/v1, resource: cronjobs, namespace: payments, name: nightly, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/jobTemplate","value":{"spec":{}}}]'}
+          - {verb: patch, apiVersion: batch/v1, resource: jobs, namespace: payments, name: once, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template","value":{"spec":{}}}]'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.volumes'}
+    - {reason: WorkloadField, request: 0, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 0, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 0, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 0, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 0, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 0, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 1, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.volumes'}
+    - {reason: WorkloadField, request: 1, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 1, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 1, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 1, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 1, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 1, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 1, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 1, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 2, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.volumes'}
+    - {reason: WorkloadField, request: 2, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 2, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 2, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 2, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 2, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 2, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 2, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 2, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 3, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 3, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 3, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 3, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 3, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 3, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 3, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 3, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 3, field: '**.volumes'}
+    - {reason: WorkloadField, request: 3, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 3, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 3, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 3, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 3, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 3, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 3, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 3, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 4, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 4, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 4, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 4, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 4, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 4, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 4, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 4, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 4, field: '**.volumes'}
+    - {reason: WorkloadField, request: 4, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 4, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 4, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 4, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 4, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 4, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 4, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 4, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 4, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 4, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 4, field: '**.securityContext'}
+
+# Object metadata can't hold a protected field, so replacing it, whole or in part, isn't flagged.
+- name: "T38 replacing only the pod template's metadata is not flagged"
+  tests: [T38]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template/metadata","value":{"labels":{"app":"api"}}}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template/metadata/labels","value":{"app":"api"}}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/metadata","value":{"labels":{"app":"api"}}}]'}
+      justification: A test proposal.
+  static: []
+
+# The empty pointer is the root: an ancestor of every field.
+- name: 'T38 replacing the whole object is flagged under every field'
+  tests: [T38]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"","value":{"spec":{}}}]'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.volumes'}
+    - {reason: WorkloadField, request: 0, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 0, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 0, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 0, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 0, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 0, field: '**.securityContext'}
+
+# Request 0 is beneath env. Requests 1 to 3 replace a list or element that can hold an image, command, args, env, envFrom, volumeMounts and securityContext (the last also named by **.securityContext). Request 4 removes a volumes element, 5 a protected field.
+- name: 'T38 a change beneath a protected field is covered by it, an ancestor of one matches beneath it'
+  tests: [T38]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template/spec/containers/0/env/0/value","value":"x"}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template/spec/containers","value":[]}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template/spec/containers/0","value":{"name":"a"}}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template/spec/initContainers","value":[]}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"remove","path":"/spec/template/spec/volumes/0"}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"remove","path":"/spec/template/spec/hostNetwork"}]'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 3, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 3, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 3, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 3, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 3, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 3, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 3, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 3, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 3, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 4, field: '**.volumes'}
+    - {reason: WorkloadField, request: 5, field: '**.hostNetwork'}
+
+# A bare pods resource covers its subresources.
+- name: "T38 a pod's ephemeralcontainers subresource"
+  tests: [T38, T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: pods, subresource: ephemeralcontainers, namespace: payments, name: web, patchType: application/strategic-merge-patch+json, body: '{"spec":{"ephemeralContainers":[{"name":"dbg","image":"busybox","targetContainerName":"app"}]}}'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.ephemeralContainers[*]'}
+
+- name: 'T39 JSON Patch: replicas and resources are not flagged, image and env are'
+  tests: [T39]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/replicas","value":5}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template/spec/containers/0/resources","value":{"limits":{"cpu":"2"}}}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/replicas","value":5},{"op":"replace","path":"/spec/template/spec/containers/0/resources/limits/cpu","value":"2"}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/replicas","value":5},{"op":"replace","path":"/spec/template/spec/containers/0/image","value":"nginx:1.28"}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/replicas","value":5},{"op":"add","path":"/spec/template/spec/containers/0/env","value":[{"name":"A","value":"b"}]}]'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 4, field: '**.containers[*].env'}
+
+# A merge patch replaces a list wholesale, so it can't change resources without also being able to change every other field of the containers; request 3 is flagged although it sets only resources.
+- name: 'T39 JSON merge patch: replicas is not flagged; a containers list replaces the whole list'
+  tests: [T39]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"spec":{"replicas":5}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"spec":{"replicas":5,"template":{"spec":{"containers":[{"name":"api","image":"nginx:1.28"}]}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"spec":{"replicas":5,"template":{"spec":{"containers":[{"name":"api","env":[{"name":"A","value":"b"}]}]}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"spec":{"template":{"spec":{"containers":[{"name":"api","resources":{"limits":{"cpu":"2"}}}]}}}}'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 3, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 3, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.lifecycle'}
+
+- name: 'T39 strategic merge patch: replicas and resources are not flagged, image and env are'
+  tests: [T39]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"replicas":5}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"template":{"spec":{"containers":[{"name":"api","resources":{"limits":{"cpu":"2"}}}]}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"replicas":5,"template":{"spec":{"containers":[{"name":"api","resources":{"limits":{"cpu":"2"}}}]}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"replicas":5,"template":{"spec":{"containers":[{"name":"api","image":"nginx:1.28"}]}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"replicas":5,"template":{"spec":{"containers":[{"name":"api","env":[{"name":"A","value":"b"}]}]}}}}'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 4, field: '**.containers[*].env'}
+
+# Request 4 puts protected fields in a delete body. A delete doesn't write the body's fields, so nothing is flagged.
+- name: 'T41 deletes of workloads are never field-flagged'
+  tests: [T41]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: delete, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api}
+          - {verb: delete, apiVersion: v1, resource: pods, namespace: payments, name: web}
+          - {verb: delete, apiVersion: batch/v1, resource: cronjobs, namespace: payments, name: nightly}
+          - {verb: delete, apiVersion: apps/v1, resource: statefulsets, namespace: payments, name: db, body: '{"propagationPolicy":"Foreground","preconditions":{"uid":"abc"}}'}
+          - {verb: delete, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, body: '{"spec":{"template":{"spec":{"serviceAccountName":"admin","hostNetwork":true}}}}'}
+      justification: A test proposal.
+  static: []
+
+# Only field rules skip delete.
+- name: 'T41 a delete still matches the rules that name no fields'
+  tests: [T41]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: delete, apiVersion: apps/v1, resource: deployments, namespace: kube-system, name: api}
+          - {verb: delete, apiVersion: v1, resource: pods, namespace: kaddie-system, name: web}
+      justification: A test proposal.
+  static:
+    - {reason: SystemNamespace, request: 0}
+    - {reason: KaddieNamespace, request: 1}
+
+# Pods and ReplicationControllers are core; Deployments, StatefulSets, DaemonSets and ReplicaSets apps; Jobs and CronJobs batch.
+- name: 'WorkloadField: an image change on each of the eight workload kinds'
+  tests: [T15, T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: x, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template/spec/containers/0/image","value":"nginx:1.28"}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: statefulsets, namespace: payments, name: x, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template/spec/containers/0/image","value":"nginx:1.28"}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: daemonsets, namespace: payments, name: x, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template/spec/containers/0/image","value":"nginx:1.28"}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: replicasets, namespace: payments, name: x, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template/spec/containers/0/image","value":"nginx:1.28"}]'}
+          - {verb: patch, apiVersion: batch/v1, resource: jobs, namespace: payments, name: x, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template/spec/containers/0/image","value":"nginx:1.28"}]'}
+          - {verb: patch, apiVersion: batch/v1, resource: cronjobs, namespace: payments, name: x, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/jobTemplate/spec/template/spec/containers/0/image","value":"nginx:1.28"}]'}
+          - {verb: patch, apiVersion: v1, resource: pods, namespace: payments, name: x, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/containers/0/image","value":"nginx:1.28"}]'}
+          - {verb: patch, apiVersion: v1, resource: replicationcontrollers, namespace: payments, name: x, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template/spec/containers/0/image","value":"nginx:1.28"}]'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 3, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 4, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 5, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 6, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 7, field: '**.containers[*].image'}
+
+# Requests 8 and 9 are kinds the field rule doesn't cover, even with an image path.
+- name: 'WorkloadField near miss: an unprotected change on each of the eight workload kinds'
+  tests: [T15, T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: x, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/replicas","value":1}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: statefulsets, namespace: payments, name: x, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/replicas","value":1}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: daemonsets, namespace: payments, name: x, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/minReadySeconds","value":1}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: replicasets, namespace: payments, name: x, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/replicas","value":1}]'}
+          - {verb: patch, apiVersion: batch/v1, resource: jobs, namespace: payments, name: x, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/parallelism","value":1}]'}
+          - {verb: patch, apiVersion: batch/v1, resource: cronjobs, namespace: payments, name: x, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/suspend","value":1}]'}
+          - {verb: patch, apiVersion: v1, resource: pods, namespace: payments, name: x, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/metadata/labels/app","value":1}]'}
+          - {verb: patch, apiVersion: v1, resource: replicationcontrollers, namespace: payments, name: x, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/replicas","value":1}]'}
+          - {verb: patch, apiVersion: example.com/v1, resource: widgets, namespace: payments, name: w, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template/spec/containers/0/image","value":"x"}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: controllerrevisions, namespace: payments, name: r, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/data","value":{}}]'}
+      justification: A test proposal.
+  static: []
+
+# apiVersion, kind and metadata.name, generateName, namespace, managedFields, resourceVersion, uid, generation and creationTimestamp are ignored, and status unless the request is on the status subresource. Replacing the whole status, or writing a field named like a protected one beneath it, isn't flagged.
+- name: 'Ignored fields: identity and server bookkeeping are never matched'
+  tests: [T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"apiVersion":"apps/v1","kind":"Deployment","metadata":{"name":"api","generateName":"api-","namespace":"payments","resourceVersion":"42","uid":"abc","generation":3,"creationTimestamp":"2026-11-11T09:00:00Z","managedFields":[{"manager":"kubectl","operation":"Apply","fieldsV1":{"f:spec":{"f:template":{}}}}]},"status":{"replicas":1,"observedGeneration":3}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/metadata/name","value":"x"},{"op":"replace","path":"/metadata/managedFields","value":[]},{"op":"replace","path":"/status","value":{}},{"op":"add","path":"/status/conditions","value":[]}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"status":{"replicas":3,"template":{"spec":{"serviceAccountName":"x"}}}}'}
+      justification: A test proposal.
+  static: []
+
+# The path status.nodeName is covered by **.nodeName wherever it appears; the same patch to the pod itself is ignored.
+- name: 'Ignored fields: status is matched on the status subresource'
+  tests: [T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: pods, subresource: status, namespace: payments, name: web, patchType: application/merge-patch+json, body: '{"status":{"nodeName":"n1"}}'}
+          - {verb: patch, apiVersion: v1, resource: pods, namespace: payments, name: web, patchType: application/merge-patch+json, body: '{"status":{"nodeName":"n1"}}'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+
+# Nothing is known about apps/v1beta1, so a replaced field might hold anything. The vendored apps/v1 schema says an integer holds nothing.
+- name: "When in doubt it changed: a resource whose schema isn't known"
+  tests: [T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1beta1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/replicas","value":5}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/replicas","value":5}]'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.volumes'}
+    - {reason: WorkloadField, request: 0, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 0, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 0, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 0, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 0, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 0, field: '**.securityContext'}
+
+# An unparseable body changes the root. It can hold every workload field on a workload and none on a ConfigMap.
+- name: "When in doubt it changed: a body that doesn't parse"
+  tests: [T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/replicas"'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"replace"'}
+      justification: A test proposal.
+  static:
+    - {reason: InvalidJSON, request: 0}
+    - {reason: InvalidJSON, request: 1}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.volumes'}
+    - {reason: WorkloadField, request: 0, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 0, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 0, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 0, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 0, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 0, field: '**.securityContext'}
+
+# The API server decodes a built-in kind into a struct and merges a repeated "spec" into the first, ignoring a null one, so the object keeps the first spec's image and serviceAccountName while a map-based reader sees only the last. A body that repeats a key anywhere is invalid, and unreadable as a body, so it changes the root.
+- name: 'T11 a create whose body repeats a key can hold every workload field'
+  tests: [T11, T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: pods, namespace: payments, body: '{"apiVersion":"v1","kind":"Pod","metadata":{"name":"p","namespace":"payments"},"spec":{"containers":[{"name":"a","image":"evil.example/x:1"}]},"spec":{"restartPolicy":"Always"}}'}
+          - {verb: create, apiVersion: v1, resource: pods, namespace: payments, body: '{"apiVersion":"v1","kind":"Pod","metadata":{"name":"p","namespace":"payments"},"spec":{"containers":[{"name":"a","image":"evil.example/x:1"}]},"spec":null}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"d"},"spec":{"selector":{"matchLabels":{"app":"d"}},"template":{"spec":{"serviceAccountName":"admin","containers":[{"name":"a","image":"evil.example/x:1"}]}},"template":{"metadata":{"labels":{"app":"d"}}}}}'}
+      justification: A test proposal.
+  static:
+    - {reason: InvalidJSON, request: 0}
+    - {reason: InvalidJSON, request: 1}
+    - {reason: InvalidJSON, request: 2}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.volumes'}
+    - {reason: WorkloadField, request: 0, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 0, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 0, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 0, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 0, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 0, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 1, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.volumes'}
+    - {reason: WorkloadField, request: 1, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 1, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 1, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 1, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 1, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 1, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 1, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 1, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 2, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.volumes'}
+    - {reason: WorkloadField, request: 2, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 2, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 2, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 2, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 2, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 2, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 2, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 2, field: '**.securityContext'}
+
+# The same inside a patch: a repeated key in a merge patch, a strategic merge patch or a JSON Patch operation is invalid, so the patch changes the root.
+- name: 'T11 a patch whose body repeats a key can hold every workload field'
+  tests: [T11, T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"spec":{"replicas":3},"spec":{"paused":false}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"replicas":3,"replicas":4}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/replicas","value":3,"path":"/spec/template/spec/serviceAccountName"}]'}
+      justification: A test proposal.
+  static:
+    - {reason: InvalidJSON, request: 0}
+    - {reason: InvalidJSON, request: 1}
+    - {reason: InvalidJSON, request: 2}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.volumes'}
+    - {reason: WorkloadField, request: 0, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 0, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 0, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 0, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 0, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 0, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 1, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.volumes'}
+    - {reason: WorkloadField, request: 1, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 1, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 1, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 1, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 1, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 1, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 1, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 1, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 2, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.volumes'}
+    - {reason: WorkloadField, request: 2, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 2, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 2, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 2, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 2, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 2, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 2, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 2, field: '**.securityContext'}
+
+# The commands exec probes and lifecycle hooks run inside a container are protected; probe thresholds, timing and httpGet probes stay proposable.
+- name: 'T15 exec probes and lifecycle hooks are protected, probe thresholds are not'
+  tests: [T15, T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"template":{"spec":{"containers":[{"name":"api","livenessProbe":{"exec":{"command":["sh","-c","true"]}}}]}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"template":{"spec":{"containers":[{"name":"api","readinessProbe":{"exec":{"command":["sh","-c","true"]}}}]}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"add","path":"/spec/template/spec/containers/0/startupProbe","value":{"exec":{"command":["sh","-c","true"]}}}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"template":{"spec":{"containers":[{"name":"api","lifecycle":{"postStart":{"exec":{"command":["sh","-c","true"]}}}}]}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: statefulsets, namespace: payments, name: db, patchType: application/merge-patch+json, body: '{"spec":{"template":{"spec":{"initContainers":[{"name":"init","image":"busybox","lifecycle":{"preStop":{"exec":{"command":["sh"]}}}}]}}}}'}
+          - {verb: patch, apiVersion: batch/v1, resource: cronjobs, namespace: payments, name: report, patchType: application/strategic-merge-patch+json, body: '{"spec":{"jobTemplate":{"spec":{"template":{"spec":{"containers":[{"name":"r","livenessProbe":{"exec":{"command":["sh"]}}}]}}}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"template":{"spec":{"containers":[{"name":"api","livenessProbe":{"periodSeconds":20,"failureThreshold":5,"timeoutSeconds":3}}]}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/httpGet/path","value":"/healthz"}]'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 4, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 4, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 4, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 4, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 4, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 5, field: '**.livenessProbe.exec'}

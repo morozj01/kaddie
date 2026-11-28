@@ -1,0 +1,138 @@
+# Proposal-level checks: the namespace (T6), and which request a finding
+# names (T13).
+
+# Nothing in the request itself is risky.
+- name: 'T6 a proposal in another namespace is high risk'
+  tests: [T6]
+  proposal:
+    metadata:
+      namespace: payments
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+      justification: A test proposal.
+  static:
+    - {reason: ProposalNamespace, request: -1}
+
+- name: 'T6 a proposal in another namespace is flagged with the findings of its requests'
+  tests: [T6, T13]
+  proposal:
+    metadata:
+      namespace: default
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+          - {verb: patch, apiVersion: v1, resource: secrets, namespace: payments, name: s, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+      justification: A test proposal.
+  static:
+    - {reason: ProposalNamespace, request: -1}
+    - {reason: Secret, request: 1}
+
+- name: 'T6 a namespace that only starts with kaddie-system is another namespace'
+  tests: [T6]
+  proposal:
+    metadata:
+      namespace: kaddie-system-2
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+      justification: A test proposal.
+  static:
+    - {reason: ProposalNamespace, request: -1}
+
+# Git proposals get the proposal checks only, until the static checks of GitOps land (T12.2).
+- name: 'T6 a Git proposal in another namespace is flagged, in kaddie-system it is not'
+  tests: [T6]
+  proposal:
+    metadata:
+      namespace: default
+    spec:
+      type: Git
+      git:
+        repository: platform
+        baseSHA: 0123456789abcdef0123456789abcdef01234567
+        edits:
+          - { path: apps/api/values.yaml, operation: Delete }
+      justification: Remove an unused values file.
+  static:
+    - {reason: ProposalNamespace, request: -1}
+
+# The same proposal in the right namespace.
+- name: 'T6 a Git proposal in kaddie-system is not flagged'
+  tests: [T6]
+  proposal:
+    spec:
+      type: Git
+      git:
+        repository: platform
+        baseSHA: 0123456789abcdef0123456789abcdef01234567
+        edits:
+          - { path: apps/api/values.yaml, operation: Delete }
+      justification: Remove an unused values file.
+  static: []
+
+# The finding names request 1, and the others have none.
+- name: 'T13 only the second of three requests matches a protection'
+  tests: [T13]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+          - {verb: delete, apiVersion: v1, resource: secrets, namespace: payments, name: s}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"spec":{"replicas":5}}'}
+      justification: A test proposal.
+  static:
+    - {reason: Secret, request: 1}
+
+- name: 'T13 requests 0 and 2 match different protections'
+  tests: [T13]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterrolebindings, name: x, patchType: application/merge-patch+json, body: '{"subjects":[]}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+          - {verb: delete, apiVersion: argoproj.io/v1alpha1, resource: applications, namespace: payments, name: app}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"spec":{"replicas":5}}'}
+      justification: A test proposal.
+  static:
+    - {reason: RBAC, request: 0}
+    - {reason: ReconcilerKind, request: 2}
+
+- name: 'T13 a field rule in the last of several requests names that request'
+  tests: [T13, T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"spec":{"replicas":5}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"spec":{"template":{"spec":{"serviceAccountName":"admin"}}}}'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 2, field: '**.serviceAccountName'}
+
+- name: 'T13 several requests matching the same protection each get a finding'
+  tests: [T13]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: delete, apiVersion: v1, resource: secrets, namespace: payments, name: a}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+          - {verb: delete, apiVersion: v1, resource: secrets, namespace: payments, name: b}
+      justification: A test proposal.
+  static:
+    - {reason: Secret, request: 0}
+    - {reason: Secret, request: 2}
