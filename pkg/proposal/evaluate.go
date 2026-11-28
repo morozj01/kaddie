@@ -76,7 +76,7 @@ type Observed struct {
 // kaddie-agent-read exception holds only when the DryRun role passes the
 // read-role rule. Requests without an Observed entry are skipped.
 func EvaluateExact(p *v1alpha1.SREProposal, observed []Observed, schemas schema.Provider) []Finding {
-	panic("unimplemented")
+	return evaluateExact(p, observed, schemas)
 }
 
 // RefusalReason is a stable code for a failed acting precondition.
