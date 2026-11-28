@@ -1,6 +1,7 @@
 package proposal
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/morozj01/kaddie/pkg/apis/v1alpha1"
@@ -123,6 +124,40 @@ func TestPatternsOverlap(t *testing.T) {
 		if got := patternsOverlap(tc.a, tc.b); got != tc.want {
 			t.Errorf("patternsOverlap(%q, %q) = %v, want %v", tc.a, tc.b, got, tc.want)
 		}
+	}
+}
+
+// A request whose address isn't single path segments has no target and is
+// Malformed, and a well-formed one of the same shape has a target and isn't.
+func TestTargetOfAndMalformedAgreeOnPathSegments(t *testing.T) {
+	cases := []struct {
+		name  string
+		mod   func(*v1alpha1.RequestFields)
+		valid bool
+	}{
+		{"resource with a trailing slash", func(r *v1alpha1.RequestFields) { r.Resource = "secrets/" }, false},
+		{"resource that climbs out", func(r *v1alpha1.RequestFields) { r.Resource = "x/../secrets" }, false},
+		{"subresource that climbs out", func(r *v1alpha1.RequestFields) { r.Subresource = "../../../kube-system/secrets/db" }, false},
+		{"escaped slash in the resource", func(r *v1alpha1.RequestFields) { r.Resource = "secrets%2F" }, false},
+		{"namespace with a slash", func(r *v1alpha1.RequestFields) { r.Namespace = "a/../b" }, false},
+		{"name that is ..", func(r *v1alpha1.RequestFields) { r.Name = ".." }, false},
+		{"name with a slash", func(r *v1alpha1.RequestFields) { r.Name = "a/b" }, false},
+		{"group in capitals", func(r *v1alpha1.RequestFields) { r.APIVersion = "Apps/v1" }, false},
+		{"version starting with a digit", func(r *v1alpha1.RequestFields) { r.APIVersion = "apps/1" }, false},
+		{"dotted name", func(r *v1alpha1.RequestFields) { r.Name = "a.b-c" }, true},
+		{"subresource", func(r *v1alpha1.RequestFields) { r.Subresource = "scale" }, true},
+		{"dotted group and beta version", func(r *v1alpha1.RequestFields) { r.APIVersion = "kaddie.org/v1beta1" }, true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			r := req("delete", "apps/v1", "deployments", "payments", "api", "")
+			c.mod(&r)
+			_, err := targetOf(r)
+			malformed := slices.ContainsFunc(requestMalformed(0, r), func(f Finding) bool { return f.Reason == Malformed })
+			if (err == nil) != c.valid || malformed == c.valid {
+				t.Errorf("targetOf error = %v, Malformed = %v, want valid = %v for both", err, malformed, c.valid)
+			}
+		})
 	}
 }
 

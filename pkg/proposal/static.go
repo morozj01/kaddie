@@ -36,7 +36,8 @@ func EvaluateStatic(p *v1alpha1.SREProposal, schemas schema.Provider) []Finding 
 // protectionFindings matches one request against the catalogue from its own
 // content: field rules see the changes it may make (changes.Static), and the
 // kaddie-agent-read exception is judged on its patch body. A request whose
-// apiVersion doesn't parse has no target, so Malformed is all that reports it.
+// address isn't valid (apiVersion, resource, subresource, namespace or name)
+// has no target, so Malformed is all that reports it.
 func protectionFindings(index int, req v1alpha1.RequestFields, schemas schema.Provider) []Finding {
 	t, err := targetOf(req)
 	if err != nil {

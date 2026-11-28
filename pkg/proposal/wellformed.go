@@ -2,8 +2,12 @@ package proposal
 
 import (
 	"encoding/json"
+	"regexp"
 	"slices"
+	"strings"
 	"unicode/utf8"
+
+	"k8s.io/apimachinery/pkg/util/validation"
 
 	"github.com/morozj01/kaddie/pkg/apis/v1alpha1"
 )
@@ -86,11 +90,48 @@ func requestMalformed(index int, req v1alpha1.RequestFields) []Finding {
 	if len(req.Body) > maxBodyBytes {
 		malformed("the body is over 64 KiB")
 	}
-	if _, err := groupOf(req.APIVersion); err != nil {
-		malformed("the apiVersion is neither v1 nor group/version")
+	_, bad := addressOf(req)
+	for _, rule := range bad {
+		malformed(rule)
 	}
 	if req.Resource == "" {
 		malformed("the resource is missing")
 	}
 	return out
+}
+
+// segmentPattern is what a resource or subresource must match: one URL path
+// segment of lowercase letters, digits and dashes.
+var segmentPattern = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
+
+// addressOf validates the pieces of a request that become segments of the URL
+// path an executor builds, and returns the request's API group. The dynamic
+// client joins them with path.Join, which cleans ".", ".." and a trailing /,
+// so a resource "secrets/" or "x/../secrets" addresses secrets and a
+// subresource "../../../kube-system/secrets/db" another object altogether.
+// Each violation is a rule of base §4.1. A missing resource or name is not a
+// violation here; requestMalformed reports those. targetOf refuses a request
+// with any violation, so the same pieces are never validated twice, and
+// differently.
+func addressOf(req v1alpha1.RequestFields) (group string, violations []string) {
+	if req.APIVersion != "v1" {
+		g, version, ok := strings.Cut(req.APIVersion, "/")
+		if !ok || len(validation.IsDNS1123Subdomain(g)) > 0 || len(validation.IsDNS1035Label(version)) > 0 {
+			violations = append(violations, "the apiVersion is neither v1 nor a group and version joined by one /, the group a DNS name and the version a DNS label")
+		}
+		group = g
+	}
+	if req.Resource != "" && !segmentPattern.MatchString(req.Resource) {
+		violations = append(violations, "the resource is not a single path segment of lowercase letters, digits and dashes")
+	}
+	if req.Subresource != "" && !segmentPattern.MatchString(req.Subresource) {
+		violations = append(violations, "the subresource is not a single path segment of lowercase letters, digits and dashes")
+	}
+	if req.Namespace != "" && len(validation.IsDNS1123Label(req.Namespace)) > 0 {
+		violations = append(violations, "the namespace is not a DNS label")
+	}
+	if strings.ContainsAny(req.Name, "/%") || req.Name == "." || req.Name == ".." {
+		violations = append(violations, "the name is not a single path segment")
+	}
+	return group, violations
 }

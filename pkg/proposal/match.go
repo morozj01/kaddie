@@ -5,7 +5,7 @@
 package proposal
 
 import (
-	"fmt"
+	"errors"
 	"slices"
 	"strings"
 
@@ -50,14 +50,16 @@ type target struct {
 	names []string
 }
 
-// targetOf resolves what req addresses. It fails when apiVersion is neither
-// v1 (the core group) nor group/version. A create body that isn't a JSON
+// targetOf resolves what req addresses. It fails when a piece of the address
+// is not a single valid path segment (addressOf), so a request that could
+// reach a different path than it names has no target and only Malformed
+// reports it. A create body that isn't a JSON
 // object, or that repeats a key, contributes no names or namespaces; body
 // hygiene flags it elsewhere.
 func targetOf(req v1alpha1.RequestFields) (target, error) {
-	group, err := groupOf(req.APIVersion)
-	if err != nil {
-		return target{}, err
+	group, bad := addressOf(req)
+	if len(bad) > 0 {
+		return target{}, errors.New(strings.Join(bad, "; "))
 	}
 	t := target{
 		group:       group,
@@ -92,18 +94,6 @@ func targetOf(req v1alpha1.RequestFields) (target, error) {
 	}
 	t.names, t.namespaces = names, namespaces
 	return t, nil
-}
-
-// groupOf returns the API group of an apiVersion: "" for v1, g for g/v.
-func groupOf(apiVersion string) (string, error) {
-	if apiVersion == "v1" {
-		return "", nil
-	}
-	group, version, ok := strings.Cut(apiVersion, "/")
-	if !ok || group == "" || version == "" || strings.Contains(version, "/") {
-		return "", fmt.Errorf("apiVersion %q is neither v1 nor group/version", apiVersion)
-	}
-	return group, nil
 }
 
 // matchesTarget reports whether t matches every field of r except Fields.
