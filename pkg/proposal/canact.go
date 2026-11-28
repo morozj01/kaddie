@@ -6,7 +6,6 @@ import (
 	"github.com/morozj01/kaddie/pkg/apis/v1alpha1"
 )
 
-// Fixed explanations of each refusal.
 const (
 	haltedExplanation          = "Kaddie is halted, or its SREConfig is missing or not in mode Enabled. Nothing may be executed until an operator sets mode Enabled."
 	executionPausedExplanation = "Execution is paused. The agent may still propose, but nothing may be executed until an operator sets mode Enabled."

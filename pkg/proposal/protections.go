@@ -207,8 +207,6 @@ var workloadFields = []fieldpath.Path{
 	fieldpath.MustParse("**.securityContext"),
 }
 
-// cloneProtections deep-copies a catalogue, so no caller shares storage with
-// the table.
 func cloneProtections(src []Protection) []Protection {
 	out := make([]Protection, len(src))
 	for i, p := range src {

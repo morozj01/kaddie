@@ -263,7 +263,6 @@ func TestRenderPolicy(t *testing.T) {
 			t.Errorf("line %d is %q, want %q followed by a summary", i, line, want[i])
 		}
 	}
-	// One line per protection, in catalogue order, "<Group>: <Summary>".
 	for i, p := range proposal.Protections() {
 		if lines[i] != p.Group+": "+p.Summary {
 			t.Errorf("line %d is %q, want the protection %s", i, lines[i], p.Reason)

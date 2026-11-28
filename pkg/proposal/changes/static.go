@@ -166,7 +166,6 @@ func (s *changeSet) strategicPatch(path []fieldpath.Segment, obj map[string]any,
 	}
 }
 
-// strategicList adds the changes of a list value whose schema is n.
 func (s *changeSet) strategicList(path []fieldpath.Segment, list []any, n schema.Node) {
 	merge, key := n.ListMerge()
 	if !merge {

@@ -20,8 +20,6 @@ const (
 	maxSpecBytes = 262144
 )
 
-// malformedFinding is a Malformed finding with a fixed explanation naming the
-// rule broken. It never quotes the proposal.
 func malformedFinding(index int, rule string) Finding {
 	return Finding{Reason: Malformed, Request: index, Explanation: "The proposal breaks a rule of its format: " + rule + "."}
 }

@@ -80,7 +80,6 @@ func (s *changeSet) leaves(path []fieldpath.Segment, v any) {
 	}
 }
 
-// diff adds the leaf changes between a and b.
 func (s *changeSet) diff(path []fieldpath.Segment, a, b any) {
 	switch av := a.(type) {
 	case map[string]any:

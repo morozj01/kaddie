@@ -22,7 +22,6 @@ const (
 	agentReadRole = "kaddie-agent-read"
 )
 
-// readRoleExplanation is the fixed explanation of a ReadRoleRule finding.
 const readRoleExplanation = "The request patches the kaddie-agent-read ClusterRole in a way that is not just adding read-only rules. It could give the agent write access, access to Secrets or exec, or control over RBAC."
 
 // applyException decides whether a protection whose rules matched a request

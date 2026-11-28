@@ -214,7 +214,6 @@ func (n Node) child(st fieldpath.Step) (c Node, ok bool) {
 	return Node{}, false
 }
 
-// children returns every node one step beneath n.
 func (n Node) children() []Node {
 	s := n.resolved()
 	if s == nil {

@@ -84,7 +84,6 @@ func Record(d discovery.DiscoveryInterface, resources []Resource) (map[string][]
 	return files, nil
 }
 
-// recordTargets returns r and the subresources of r worth recording.
 func recordTargets(src *liveSource, r Resource) ([]Resource, error) {
 	own, err := src.entry(r)
 	if err != nil {
@@ -211,7 +210,6 @@ func marshal(v any) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// documentFile names the file holding the document of gv.
 func documentFile(gv schema.GroupVersion) string {
 	g := gv.Group
 	if g == "" {

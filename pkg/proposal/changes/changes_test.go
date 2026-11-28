@@ -639,7 +639,6 @@ const live = `{
   }
 }`
 
-// apply runs changes.Apply and returns the result as a generic document.
 func apply(t *testing.T, pt v1alpha1.PatchType, patchBody string, root schema.Node) any {
 	t.Helper()
 	out, err := changes.Apply(pt, []byte(live), []byte(patchBody), root)

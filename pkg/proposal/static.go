@@ -136,7 +136,6 @@ func matchProtections(in protectionInput) []Finding {
 	return out
 }
 
-// rootOf returns the schema of the object a request writes.
 func rootOf(req v1alpha1.RequestFields, t target, schemas schema.Provider) schema.Node {
 	version := req.APIVersion
 	if _, v, ok := strings.Cut(req.APIVersion, "/"); ok {
@@ -194,7 +193,6 @@ func withoutIgnored(chs []fieldpath.Change, subresource string) []fieldpath.Chan
 	return out
 }
 
-// beneathAny reports whether path is at or beneath one of the prefixes.
 func beneathAny(path []fieldpath.Segment, prefixes [][]string) bool {
 	for _, prefix := range prefixes {
 		if len(path) < len(prefix) {

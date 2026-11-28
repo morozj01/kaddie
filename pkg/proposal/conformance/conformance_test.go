@@ -11,7 +11,6 @@ import (
 	"github.com/morozj01/kaddie/pkg/proposal/conformance"
 )
 
-// fixed returns an engine whose static and exact findings are the given ones.
 func fixed(static, exact []proposal.Finding) conformance.Engine {
 	return conformance.Engine{
 		Static: func(*v1alpha1.SREProposal) []proposal.Finding { return static },

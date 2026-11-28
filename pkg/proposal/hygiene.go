@@ -12,7 +12,6 @@ import (
 // secret value.
 const redactedMarker = "<redacted:"
 
-// Fixed explanations of the body hygiene findings. They never quote the body.
 const (
 	invalidJSONExplanation = "The body is not valid JSON of the kind this verb and patch type require. The API server would reject it, or an executor could read it differently from what is shown."
 	redactedExplanation    = "The body contains a redaction placeholder. If the request were executed, the placeholder text would be written in place of the real value."

@@ -59,7 +59,6 @@ func Parse(s string) (Path, error) {
 	}
 }
 
-// scanName reads a plain name from the start of s, up to the next separator.
 func scanName(s string) (string, error) {
 	name := s
 	if n := strings.IndexAny(s, ".[]\""); n >= 0 {

@@ -136,7 +136,6 @@ func compare(kind string, want []Expect, got []proposal.Finding) []string {
 	return out
 }
 
-// describe renders one finding key.
 func describe(k Expect) string {
 	var b strings.Builder
 	b.WriteString(string(k.Reason))
