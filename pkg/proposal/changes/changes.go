@@ -4,6 +4,11 @@
 package changes
 
 import (
+	"fmt"
+
+	jsonpatch "gopkg.in/evanphx/json-patch.v4"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
+
 	"github.com/morozj01/kaddie/pkg/apis/v1alpha1"
 	"github.com/morozj01/kaddie/pkg/proposal/fieldpath"
 	"github.com/morozj01/kaddie/pkg/proposal/schema"
@@ -28,21 +33,69 @@ import (
 //     the enclosing object a Subtree Change; $setElementOrder/<f> and
 //     $deleteFromPrimitiveList/<f> make field f one.
 //
-// A body Static can't parse as its patch type requires changes the root.
+// A body Static can't parse as its patch type changes the root, as a Subtree
+// Change with an empty Path. A strategic merge patch element that holds only
+// its merge key, or an object that is empty, is a leaf Change at that element
+// or object, since it still adds one. A strategic merge list element has no
+// known index, so its segment is {Elem: true} with an empty Key.
+//
+// The result holds one Change per path, a Subtree Change winning over a leaf
+// at the same path, in the order found: map keys sorted, list elements and
+// patch operations in order.
 func Static(verb v1alpha1.RequestVerb, pt v1alpha1.PatchType, body []byte, root schema.Node) []fieldpath.Change {
-	panic("unimplemented")
+	var set changeSet
+	switch verb {
+	case verbDelete:
+		return nil
+	case verbCreate:
+		doc, err := decode(body)
+		obj, ok := doc.(map[string]any)
+		if err != nil || !ok {
+			return rootChange()
+		}
+		set.leaves(nil, obj)
+	case verbPatch:
+		if !staticPatch(&set, pt, body, root) {
+			return rootChange()
+		}
+	default:
+		return rootChange()
+	}
+	return set.out
 }
 
 // Diff returns the leaf fields that differ between two JSON documents: added,
 // removed and changed scalars, empty objects and empty lists, list elements
 // compared by index. A removed object or list contributes every leaf it held.
 func Diff(before, after []byte) ([]fieldpath.Change, error) {
-	panic("unimplemented")
+	a, err := decode(before)
+	if err != nil {
+		return nil, fmt.Errorf("before: %w", err)
+	}
+	b, err := decode(after)
+	if err != nil {
+		return nil, fmt.Errorf("after: %w", err)
+	}
+	var set changeSet
+	set.diff(nil, a, b)
+	return set.out, nil
 }
 
 // Apply applies a patch client-side, as the API server would before
 // admission: JSON Patch and merge patch with the evanphx/json-patch rules the
 // API server uses, strategic merge patch with root's merge keys.
 func Apply(pt v1alpha1.PatchType, original, patch []byte, root schema.Node) ([]byte, error) {
-	panic("unimplemented")
+	switch pt {
+	case patchJSON:
+		p, err := jsonpatch.DecodePatch(patch)
+		if err != nil {
+			return nil, fmt.Errorf("decode JSON patch: %w", err)
+		}
+		return p.Apply(original)
+	case patchMerge:
+		return jsonpatch.MergePatch(original, patch)
+	case patchStrategic:
+		return strategicpatch.StrategicMergePatchUsingLookupPatchMeta(original, patch, root.PatchMeta())
+	}
+	return nil, fmt.Errorf("unsupported patch type %q", pt)
 }
