@@ -87,9 +87,13 @@ test: ## Run unit tests (go test). PKG=... narrows the packages.
 	go test -count=1 $(PKG)
 
 .PHONY: test-envtest
-test-envtest: $(SETUP_ENVTEST) ## Run CRD/CEL tests against a real 1.28 kube-apiserver. FOCUS=crd narrows them.
+test-envtest: $(SETUP_ENVTEST) envtest-clean ## Run CRD/CEL tests against a real 1.28 kube-apiserver. FOCUS=crd narrows them.
 	KUBEBUILDER_ASSETS="$$($(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN)/k8s -p path)" \
 	  go test -count=1 -tags envtest ./test/envtest/... $(RUN_FLAG) -v
+
+.PHONY: envtest-clean
+envtest-clean: ## Stop etcd and kube-apiserver left running by interrupted envtest runs.
+	bash test/infra/envtest-clean.sh
 
 .PHONY: chart-test
 chart-test: ## helm lint plus render tests, with GitOps on and off.
