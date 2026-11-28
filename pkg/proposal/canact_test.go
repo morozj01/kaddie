@@ -144,6 +144,8 @@ func TestCanActOpen(t *testing.T) {
 		{"Git PR open", gitProposal(func(s *v1alpha1.SREProposalStatus) { s.PR = &v1alpha1.PRStatus{State: "Open"} }), nil},
 		{"Git PR merged", gitProposal(func(s *v1alpha1.SREProposalStatus) { s.PR = &v1alpha1.PRStatus{State: "Merged"} }), notOpen},
 		{"Git PR closed", gitProposal(func(s *v1alpha1.SREProposalStatus) { s.PR = &v1alpha1.PRStatus{State: "Closed"} }), notOpen},
+		{"Git PR with no state", gitProposal(func(s *v1alpha1.SREProposalStatus) { s.PR = &v1alpha1.PRStatus{} }), notOpen},
+		{"Git PR with an unknown state", gitProposal(func(s *v1alpha1.SREProposalStatus) { s.PR = &v1alpha1.PRStatus{State: "Draft"} }), notOpen},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

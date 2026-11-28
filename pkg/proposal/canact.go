@@ -63,15 +63,16 @@ func CanAct(cfg *v1alpha1.SREConfig, p *v1alpha1.SREProposal, expiry time.Durati
 
 // isOpen reports whether the proposal has no outcome yet (base §7.2). An Api
 // proposal is open until kaddie-ui writes status.execution.phase. A Git
-// proposal is closed by a Dismissed approval, a push failure, or a PR that
-// was merged or closed.
+// proposal is closed by a Dismissed approval, a push failure, or a PR whose
+// state is anything but Open, so an empty or unknown state can't be read as
+// permission.
 func isOpen(p *v1alpha1.SREProposal) bool {
 	st := p.Status
 	switch p.Spec.Type {
 	case v1alpha1.ProposalTypeGit:
 		return (st.Approval == nil || st.Approval.Phase != v1alpha1.ApprovalPhaseDismissed) &&
 			st.PushFailure == nil &&
-			(st.PR == nil || (st.PR.State != v1alpha1.PRStateMerged && st.PR.State != v1alpha1.PRStateClosed))
+			(st.PR == nil || st.PR.State == v1alpha1.PRStateOpen)
 	default:
 		return st.Execution == nil || st.Execution.Phase == ""
 	}
