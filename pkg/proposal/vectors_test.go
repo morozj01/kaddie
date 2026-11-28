@@ -36,11 +36,17 @@ func loadVectors(t *testing.T) []conformance.Vector {
 
 // runVectors checks every vector tagged with a spec test ID. A tag with no
 // vector is a failure, so a test can't pass by running nothing.
-func runVectors(t *testing.T, tag string) {
+func runVectors(t *testing.T, tag string) { runTagged(t, tag, false) }
+
+// runExactVectors is runVectors for the tagged vectors that have observed
+// requests, so exact evaluation is checked as well as static.
+func runExactVectors(t *testing.T, tag string) { runTagged(t, tag, true) }
+
+func runTagged(t *testing.T, tag string, observedOnly bool) {
 	t.Helper()
 	ran := 0
 	for _, v := range loadVectors(t) {
-		if !slices.Contains(v.Tests, tag) {
+		if !slices.Contains(v.Tests, tag) || observedOnly && len(v.Observed) == 0 {
 			continue
 		}
 		ran++
@@ -74,11 +80,21 @@ func TestT14_GenerateNameAndNamespaceResourceVectors(t *testing.T) { runVectors(
 // T15: every protection of base 6.3, matching and near-miss requests.
 func TestT15_ProtectionVectors(t *testing.T) { runVectors(t, "T15") }
 
-// T16: the whole corpus, as every consumer of pkg/proposal must pass it.
+// T16: the whole corpus, static and exact, as every consumer of pkg/proposal
+// must pass it. Consumers: kaddie-tools (T5.5), kaddie-ui (T6.5, T10.4).
 func TestT16_ConformanceVectors(t *testing.T) {
 	vectors := loadVectors(t)
 	if len(vectors) == 0 {
 		t.Fatal("no vectors")
+	}
+	exact := 0
+	for _, v := range vectors {
+		if len(v.Observed) > 0 {
+			exact++
+		}
+	}
+	if exact == 0 {
+		t.Fatal("no vector has observed requests, so exact evaluation isn't checked")
 	}
 	for _, v := range vectors {
 		t.Run(v.Name, func(t *testing.T) {
@@ -91,6 +107,15 @@ func TestT16_ConformanceVectors(t *testing.T) {
 
 // T25 (static part): the kaddie-agent-read exception.
 func TestT25_AgentReadRoleStaticVectors(t *testing.T) { runVectors(t, "T25") }
+
+// T25 (exact part): the exception holds only when the role the dry run
+// returned passes the read-role rule and has no aggregationRule.
+func TestT25_ExactReadRole(t *testing.T) { runExactVectors(t, "T25") }
+
+// T40: a protected field changed during the dry run, by the request or by
+// admission, is flagged and attributed. (The kaddie-ui preview and
+// confirmation that show it: T6.5.)
+func TestT40_AdmissionChangesAreFlaggedAndAttributed(t *testing.T) { runExactVectors(t, "T40") }
 
 // T34: a placeholder in a drafted proposal is flagged.
 func TestT34_RedactedPlaceholderVectors(t *testing.T) { runVectors(t, "T34") }

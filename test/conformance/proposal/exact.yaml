@@ -1,0 +1,769 @@
+# Exact evaluation (base 4.2.1 item 2, T2.6): the findings from what a
+# server-side dry run really changed. observed.live is the object before the
+# request, observed.dryRun the object the dry run returned. A finding's source
+# is Request when the request's own change (what applying it client-side does
+# to live) matches the protected path, Admission when only the rest of the
+# difference to the dry run does. A create's own changes are the body's fields;
+# server defaults it leaves unset don't count. static is what EvaluateStatic
+# returns for the same proposal.
+
+# Static sees a replicas change only. The dry run shows the image changed too, which the client-side application of the patch does not, so admission did it.
+- name: "T40 a webhook rewrites a container image the patch did not touch"
+  tests: [T40]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"replicas":3}}'}
+      justification: A test proposal.
+  observed:
+    - request: 0
+      live:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "100", generation: 4}
+        spec:
+          replicas: 2
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "nginx:1.27"
+        status: {replicas: 2, observedGeneration: 4}
+      dryRun:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "101", generation: 5}
+        spec:
+          replicas: 3
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "registry.example.net/mirror/nginx:1.27"
+        status: {replicas: 2, observedGeneration: 5}
+  static: []
+  exact:
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image', source: Admission}
+
+# The patch changes the image, so that finding is the request's. A webhook then injects an env var the patch did not carry: that finding is admission's.
+- name: "T40 a patch that changes the image itself is the request's finding, a webhook's other change is admission's"
+  tests: [T40]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"template":{"spec":{"containers":[{"name":"app","image":"nginx:1.28"}]}}}}'}
+      justification: A test proposal.
+  observed:
+    - request: 0
+      live:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "100", generation: 4}
+        spec:
+          replicas: 2
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "nginx:1.27"
+        status: {replicas: 2, observedGeneration: 4}
+      dryRun:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "101", generation: 5}
+        spec:
+          replicas: 2
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "nginx:1.28"
+                  env:
+                    - {name: HTTP_PROXY, value: "http://proxy.example.net:3128"}
+        status: {replicas: 2, observedGeneration: 5}
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image'}
+  exact:
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image', source: Request}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].env', source: Admission}
+
+- name: "T40 a webhook that rewrites the image the patch also sets leaves it the request's finding"
+  tests: [T40]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"template":{"spec":{"containers":[{"name":"app","image":"nginx:1.28"}]}}}}'}
+      justification: A test proposal.
+  observed:
+    - request: 0
+      live:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "100", generation: 4}
+        spec:
+          replicas: 2
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "nginx:1.27"
+        status: {replicas: 2, observedGeneration: 4}
+      dryRun:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "101", generation: 5}
+        spec:
+          replicas: 2
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "registry.example.net/mirror/nginx:1.28"
+        status: {replicas: 2, observedGeneration: 5}
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image'}
+  exact:
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image', source: Request}
+
+# metadata.annotations is not protected; metadata bookkeeping, status and managedFields are ignored.
+- name: "T40 a dry run that shows only what the patch does has no exact findings, whatever bookkeeping and unprotected fields admission touches"
+  tests: [T40]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"replicas":3}}'}
+      justification: A test proposal.
+  observed:
+    - request: 0
+      live:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "100", generation: 4}
+        spec:
+          replicas: 2
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "nginx:1.27"
+        status: {replicas: 2, observedGeneration: 4}
+      dryRun:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "101", generation: 5, annotations: {"example.com/audited": "true"}, uid: "7c1e", creationTimestamp: "2026-11-11T09:00:00Z", managedFields: [{manager: kubectl, operation: Update}]}
+        spec:
+          replicas: 3
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "nginx:1.27"
+        status: {replicas: 3, observedGeneration: 5}
+  static: []
+  exact: []
+
+# Exact evaluation is more precise than static: only the pod template's label really changed.
+- name: "T40 replacing spec.template with identical content and a label change: static flags every field beneath it, exact flags none"
+  tests: [T40]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template","value":{"metadata":{"labels":{"app":"api","tier":"web"}},"spec":{"containers":[{"name":"app","image":"nginx:1.27"}]}}}]'}
+      justification: A test proposal.
+  observed:
+    - request: 0
+      live:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "100", generation: 4}
+        spec:
+          replicas: 2
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "nginx:1.27"
+        status: {replicas: 2, observedGeneration: 4}
+      dryRun:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "101", generation: 5}
+        spec:
+          replicas: 2
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api, tier: web}}
+            spec:
+              containers:
+                - name: app
+                  image: "nginx:1.27"
+        status: {replicas: 2, observedGeneration: 5}
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.volumes'}
+    - {reason: WorkloadField, request: 0, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 0, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 0, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 0, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 0, field: '**.securityContext'}
+  exact: []
+
+# The test operation fails against the live object, so Apply fails and the whole difference between live and the dry run is the request's.
+- name: "T40 when the patch can't be applied client-side, everything the dry run shows counts as the request's own"
+  tests: [T40]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"test","path":"/spec/replicas","value":5},{"op":"replace","path":"/spec/replicas","value":3}]'}
+      justification: A test proposal.
+  observed:
+    - request: 0
+      live:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "100", generation: 4}
+        spec:
+          replicas: 2
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "nginx:1.27"
+        status: {replicas: 2, observedGeneration: 4}
+      dryRun:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "101", generation: 5}
+        spec:
+          replicas: 3
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "registry.example.net/mirror/nginx:1.27"
+        status: {replicas: 2, observedGeneration: 5}
+  static: []
+  exact:
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image', source: Request}
+
+# The dry run adds serviceAccountName, volumes and securityContext, all protected. The body sets none of them, so they are defaults, and only the body's own image is reported.
+- name: "T40 a create's fields the server defaults but the body doesn't set are not findings"
+  tests: [T40]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: pods, namespace: payments, body: '{"metadata":{"name":"web"},"spec":{"containers":[{"name":"app","image":"nginx:1.27"}]}}'}
+      justification: A test proposal.
+  observed:
+    - request: 0
+      dryRun:
+        apiVersion: v1
+        kind: Pod
+        metadata: {name: web, namespace: payments, uid: "5d2f", resourceVersion: "7", creationTimestamp: "2026-11-11T09:00:00Z"}
+        spec:
+          containers:
+            - {name: app, image: "nginx:1.27", imagePullPolicy: IfNotPresent, terminationMessagePath: /dev/termination-log}
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          schedulerName: default-scheduler
+          securityContext: {}
+          serviceAccount: default
+          serviceAccountName: default
+          volumes:
+            - {name: kube-api-access-x7k2p, projected: {defaultMode: 420, sources: [{serviceAccountToken: {expirationSeconds: 3607, path: token}}]}}
+        status: {phase: Pending}
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image'}
+  exact:
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image', source: Request}
+
+# A create's own changes are the body's fields, and the body names an image, so the finding is the request's even though admission changed its value. A create finding is never Admission.
+- name: "T40 a create whose image admission rewrites is reported once, as the request's, because the body sets it"
+  tests: [T40]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: pods, namespace: payments, body: '{"metadata":{"name":"web"},"spec":{"containers":[{"name":"app","image":"nginx:1.27"}]}}'}
+      justification: A test proposal.
+  observed:
+    - request: 0
+      dryRun:
+        apiVersion: v1
+        kind: Pod
+        metadata: {name: web, namespace: payments, uid: "5d2f", resourceVersion: "7", creationTimestamp: "2026-11-11T09:00:00Z"}
+        spec:
+          containers:
+            - {name: app, image: "registry.example.net/mirror/nginx:1.27", imagePullPolicy: IfNotPresent, terminationMessagePath: /dev/termination-log}
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          schedulerName: default-scheduler
+          securityContext: {}
+          serviceAccount: default
+          serviceAccountName: default
+          volumes:
+            - {name: kube-api-access-x7k2p, projected: {defaultMode: 420, sources: [{serviceAccountToken: {expirationSeconds: 3607, path: token}}]}}
+        status: {phase: Pending}
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image'}
+  exact:
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image', source: Request}
+
+# Exact evaluation judges the role the dry run returns: every rule passes the read-role rule and there is no aggregationRule.
+- name: "T25 exact: a patch adding a read-only rule, whose resulting role passes, is not flagged"
+  tests: [T25]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+      justification: A test proposal.
+  observed:
+    - request: 0
+      live:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+          - {apiGroups: [apps], resources: [deployments], verbs: [get, list, watch]}
+      dryRun:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+          - {apiGroups: [apps], resources: [deployments], verbs: [get, list, watch]}
+          - {apiGroups: [cert-manager.io], resources: [certificates], verbs: [get, list, watch]}
+  static: []
+  exact: []
+
+# A mutating webhook added a wildcard-verb rule. The patch body passes the static check.
+- name: "T25 exact: a patch that looks fine but whose resulting role holds a rule that breaks the read-role rule is ReadRoleRule"
+  tests: [T25]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+      justification: A test proposal.
+  observed:
+    - request: 0
+      live:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+          - {apiGroups: [apps], resources: [deployments], verbs: [get, list, watch]}
+      dryRun:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+          - {apiGroups: [apps], resources: [deployments], verbs: [get, list, watch]}
+          - {apiGroups: [cert-manager.io], resources: [certificates], verbs: [get, list, watch]}
+          - {apiGroups: [""], resources: [pods], verbs: ['*']}
+  static: []
+  exact:
+    - {reason: ReadRoleRule, request: 0, source: Request}
+
+- name: "T25 exact: a resulting role with a rule on secrets, pods/exec or the RBAC group is ReadRoleRule"
+  tests: [T25]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+      justification: A test proposal.
+  observed:
+    - request: 0
+      live:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+          - {apiGroups: [apps], resources: [deployments], verbs: [get, list, watch]}
+      dryRun:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+          - {apiGroups: [apps], resources: [deployments], verbs: [get, list, watch]}
+          - {apiGroups: [cert-manager.io], resources: [certificates], verbs: [get, list, watch]}
+          - {apiGroups: [""], resources: [secrets], verbs: [get]}
+    - request: 1
+      live:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+          - {apiGroups: [apps], resources: [deployments], verbs: [get, list, watch]}
+      dryRun:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+          - {apiGroups: [apps], resources: [deployments], verbs: [get, list, watch]}
+          - {apiGroups: [cert-manager.io], resources: [certificates], verbs: [get, list, watch]}
+          - {apiGroups: [""], resources: [pods/exec], verbs: [get]}
+    - request: 2
+      live:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+          - {apiGroups: [apps], resources: [deployments], verbs: [get, list, watch]}
+      dryRun:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+          - {apiGroups: [apps], resources: [deployments], verbs: [get, list, watch]}
+          - {apiGroups: [cert-manager.io], resources: [certificates], verbs: [get, list, watch]}
+          - {apiGroups: [rbac.authorization.k8s.io], resources: [roles], verbs: [get]}
+  static: []
+  exact:
+    - {reason: ReadRoleRule, request: 0, source: Request}
+    - {reason: ReadRoleRule, request: 1, source: Request}
+    - {reason: ReadRoleRule, request: 2, source: Request}
+
+- name: "T25 exact: a resulting role with an aggregationRule is ReadRoleRule, however fine the patch looked"
+  tests: [T25]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'}
+      justification: A test proposal.
+  observed:
+    - request: 0
+      live:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+          - {apiGroups: [apps], resources: [deployments], verbs: [get, list, watch]}
+      dryRun:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        aggregationRule: {clusterRoleSelectors: [{matchLabels: {rbac.example.com/aggregate-to-agent: "true"}}]}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+          - {apiGroups: [apps], resources: [deployments], verbs: [get, list, watch]}
+          - {apiGroups: [cert-manager.io], resources: [certificates], verbs: [get, list, watch]}
+  static: []
+  exact:
+    - {reason: ReadRoleRule, request: 0, source: Request}
+
+# The patch also writes metadata, which the static check never clears. The role it leaves is read-only.
+- name: "T25 exact: a patch the static check can't clear is not flagged when the resulting role passes"
+  tests: [T25]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-read, patchType: application/merge-patch+json, body: '{"metadata":{"labels":{"team":"sre"}},"rules":[{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}]}'}
+      justification: A test proposal.
+  observed:
+    - request: 0
+      live:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+          - {apiGroups: [apps], resources: [deployments], verbs: [get, list, watch]}
+      dryRun:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9", labels: {team: sre}}
+        rules:
+          - {apiGroups: [cert-manager.io], resources: [certificates], verbs: [get, list, watch]}
+  static:
+    - {reason: ReadRoleRule, request: 0}
+  exact: []
+
+- name: "T25 exact: other RBAC objects stay RBAC findings, as the request's"
+  tests: [T25]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, name: kaddie-agent-write, patchType: application/json-patch+json, body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["pods"],"verbs":["get"]}}]'}
+          - {verb: create, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, body: '{"metadata":{"name":"kaddie-agent-read"},"rules":[]}'}
+      justification: A test proposal.
+  observed:
+    - request: 0
+      live:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-write, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+          - {apiGroups: [apps], resources: [deployments], verbs: [get, list, watch]}
+      dryRun:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-write, resourceVersion: "9"}
+        rules:
+          - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+          - {apiGroups: [apps], resources: [deployments], verbs: [get, list, watch]}
+          - {apiGroups: [""], resources: [pods], verbs: [get]}
+    - request: 1
+      dryRun:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata: {name: kaddie-agent-read, resourceVersion: "9"}
+        rules:
+  static:
+    - {reason: RBAC, request: 0}
+    - {reason: RBAC, request: 1}
+  exact:
+    - {reason: RBAC, request: 0, source: Request}
+    - {reason: RBAC, request: 1, source: Request}
+
+- name: "T41 exact: deleting a Deployment has no field findings"
+  tests: [T41]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: delete, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api}
+      justification: A test proposal.
+  observed:
+    - request: 0
+      live:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "100", generation: 4}
+        spec:
+          replicas: 2
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "nginx:1.27"
+        status: {replicas: 2, observedGeneration: 4}
+      dryRun:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "100", generation: 4}
+        spec:
+          replicas: 2
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "nginx:1.27"
+        status: {replicas: 2, observedGeneration: 4}
+  static: []
+  exact: []
+
+# Fixed test values only.
+- name: "T15 exact: a protection with no fields is reported exactly as it is statically, as the request's"
+  tests: [T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: secrets, namespace: payments, name: db, patchType: application/merge-patch+json, body: '{"stringData":{"password":"x"}}'}
+      justification: A test proposal.
+  observed:
+    - request: 0
+      live:
+        apiVersion: v1
+        kind: Secret
+        metadata: {name: db, namespace: payments}
+        type: Opaque
+        data: {password: b2xk}
+      dryRun:
+        apiVersion: v1
+        kind: Secret
+        metadata: {name: db, namespace: payments}
+        type: Opaque
+        data: {password: eA==}
+  static:
+    - {reason: Secret, request: 0}
+  exact:
+    - {reason: Secret, request: 0, source: Request}
+
+# Request 0 has no observed entry, so exact says nothing about it; entries 7 and -1 name no request.
+- name: "T40 requests without an observed entry, and entries for requests the proposal doesn't have, are skipped"
+  tests: [T40]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: secrets, namespace: payments, name: db, patchType: application/merge-patch+json, body: '{"stringData":{"password":"x"}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"replicas":3}}'}
+      justification: A test proposal.
+  observed:
+    - request: 7
+      live:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "100", generation: 4}
+        spec:
+          replicas: 2
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "nginx:1.27"
+        status: {replicas: 2, observedGeneration: 4}
+      dryRun:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "100", generation: 4}
+        spec:
+          replicas: 3
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "registry.example.net/mirror/nginx:1.27"
+        status: {replicas: 2, observedGeneration: 4}
+    - request: -1
+      live:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "100", generation: 4}
+        spec:
+          replicas: 2
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "nginx:1.27"
+        status: {replicas: 2, observedGeneration: 4}
+      dryRun:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "100", generation: 4}
+        spec:
+          replicas: 2
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "nginx:1.27"
+        status: {replicas: 2, observedGeneration: 4}
+    - request: 1
+      live:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "100", generation: 4}
+        spec:
+          replicas: 2
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "nginx:1.27"
+        status: {replicas: 2, observedGeneration: 4}
+      dryRun:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: api, namespace: payments, resourceVersion: "100", generation: 4}
+        spec:
+          replicas: 3
+          selector: {matchLabels: {app: api}}
+          template:
+            metadata: {labels: {app: api}}
+            spec:
+              containers:
+                - name: app
+                  image: "registry.example.net/mirror/nginx:1.27"
+        status: {replicas: 2, observedGeneration: 4}
+  static:
+    - {reason: Secret, request: 0}
+  exact:
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].image', source: Admission}
