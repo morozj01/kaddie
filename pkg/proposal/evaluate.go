@@ -106,5 +106,5 @@ type Refusal struct {
 // an input: they change how a proposal is shown, never whether it can be
 // acted on.
 func CanAct(cfg *v1alpha1.SREConfig, p *v1alpha1.SREProposal, expiry time.Duration, now time.Time) []Refusal {
-	panic("unimplemented")
+	return canAct(cfg, p, expiry, now)
 }
