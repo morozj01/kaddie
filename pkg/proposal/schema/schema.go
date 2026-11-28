@@ -116,6 +116,7 @@ const (
 	extPreserve      = "x-kubernetes-preserve-unknown-fields"
 	extGVK           = "x-kubernetes-group-version-kind"
 	refPrefix        = "#/components/schemas/"
+	fieldsV1         = "io.k8s.apimachinery.pkg.apis.meta.v1.FieldsV1"
 	maxResolveDepth  = 32
 )
 
@@ -159,6 +160,11 @@ func (n Node) open() bool {
 	}
 	if v, _ := s.Extensions[extPreserve].(bool); v {
 		return true
+	}
+	if s == n.schemas[fieldsV1] {
+		// managedFields' FieldsV1 is a serialized field set, not object
+		// fields, though its schema is a free-form object.
+		return false
 	}
 	switch {
 	case s.Items != nil || s.Type.Contains("array"):
