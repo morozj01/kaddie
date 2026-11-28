@@ -16,7 +16,7 @@ Rules the checker enforces:
   `TestCRD_T8_...`) is listed in that ID's row.
 - An ID claimed by a task in "Tasks done" is not `unclaimed`.
 
-Tasks done: T0.1, T0.2, T0.3, T1.1, T1.2, T1.3, T1.4, T1.5, T1.6, T2.1, T2.2, T2.3, T2.4, T2.5
+Tasks done: T0.1, T0.2, T0.3, T1.1, T1.2, T1.3, T1.4, T1.5, T1.6, T2.1, T2.2, T2.3, T2.4, T2.5, T2.6, T2.7
 
 | ID | Spec | Summary | Planned task(s) | Release | Implemented by |
 | --- | --- | --- | --- | --- | --- |
@@ -44,7 +44,7 @@ Tasks done: T0.1, T0.2, T0.3, T1.1, T1.2, T1.3, T1.4, T1.5, T1.6, T2.1, T2.2, T2
 | T22 | base | The client shows every request body in full, including very large bodies (up to the 64 KiB limit). | T6.6, T6.7 | v1 | unclaimed |
 | T23 | base | After a new CRD is installed, discovery reports it as `type-only`, and listing its instances is forbidden. | T5.3 | v1 | unclaimed |
 | T24 | base | `propose_read` for that type creates a proposal whose only request is a `patch` on `clusterroles/kaddie-age... | T7.1 | v1.1 | unclaimed |
-| T25 | base | `EvaluateStatic` and the exact evaluation flag as high risk any proposal that would leave `kaddie-agent-rea... | T2.5, T2.6 | v1 | partial: pkg/proposal/vectors_test.go:TestT25_AgentReadRoleStaticVectors, pkg/proposal/readrole_test.go:TestT25_ShippedReadRoleRulesPass, pkg/proposal/readrole_test.go:TestT25_ReadRoleRuleViolations (exact evaluation: T2.6) |
+| T25 | base | `EvaluateStatic` and the exact evaluation flag as high risk any proposal that would leave `kaddie-agent-rea... | T2.5, T2.6 | v1 | pkg/proposal/vectors_test.go:TestT25_AgentReadRoleStaticVectors, pkg/proposal/readrole_test.go:TestT25_ShippedReadRoleRulesPass, pkg/proposal/readrole_test.go:TestT25_ReadRoleRuleViolations, pkg/proposal/vectors_test.go:TestT25_ExactReadRole |
 | T26 | base | An `Api` proposal that patches any other RBAC object, creates or deletes any ClusterRole or binding, or pat... | T7.1 | v1.1 | unclaimed |
 | T27 | base | In `cluster` ownership mode, `helm upgrade` leaves rules added to `kaddie-agent-read` after install in plac... | T1.3, T7.2 | v1 | partial: test/chart/rbac_render_test.go:TestT27_AgentReadKeptByHelm, test/e2e/chart_test.go:TestT27_AgentReadSurvivesHelm (git mode: T7.2) |
 | T28 | base | Removing a rule from `kaddie-agent-read` by hand makes its kind `type-only` again within the discovery refr... | T5.3 | v1 | unclaimed |
@@ -59,12 +59,12 @@ Tasks done: T0.1, T0.2, T0.3, T1.1, T1.2, T1.3, T1.4, T1.5, T1.6, T2.1, T2.2, T2
 | T37 | base | For `create` and each patch type (JSON Patch, JSON merge, strategic merge), a request that changes a protec... | T2.3, T2.4 | v1 | pkg/proposal/vectors_test.go:TestT37_CreateAndEachPatchTypeVectors |
 | T38 | base | Ancestors and descendants: replacing `spec.template` wholesale is high risk under the rule on `spec.templat... | T2.2 | v1 | pkg/proposal/fieldpath/match_test.go:TestT38_AncestorsAndDescendants, pkg/proposal/vectors_test.go:TestT38_SubtreeVectors |
 | T39 | base | A Deployment patch changing only `spec.replicas` or `resources` isn't flagged; one that also changes `spec.... | T2.3, T2.4 | v1 | pkg/proposal/vectors_test.go:TestT39_ReplicasAndResourcesVectors |
-| T40 | base | A test mutating webhook changes a protected field during the dry run → the client flags the proposal as hig... | T2.6, T6.5 | v1 | unclaimed |
+| T40 | base | A test mutating webhook changes a protected field during the dry run → the client flags the proposal as hig... | T2.6, T6.5 | v1 | partial: pkg/proposal/vectors_test.go:TestT40_AdmissionChangesAreFlaggedAndAttributed (kaddie-ui preview and confirmation: T6.5) |
 | T41 | base | Field rules never match `delete`. | T2.3 | v1 | pkg/proposal/vectors_test.go:TestT41_DeleteVectors |
 | T42 | base | An identity with `update` and `patch` on `sreconfigs` can change `mode`, `triggersPaused` and every setting... | T1.6 | v1 | test/e2e/rbac_test.go:TestT42_GT3_OnlyOperatorsChangeSREConfig |
 | T43 | base | Creating an `SREConfig` with any name other than `default` is rejected by the CRD schema. | T1.2, T1.4 | v1 | partial: test/envtest/crd_validation_test.go:TestCRD_T43_SREConfigSingleton, test/chart/render_test.go:TestT43_ChartCreatesNoSREConfig, test/e2e/chart_test.go:TestT43_SREConfigUntouchedByHelm (components behaving as Halted: T4.6, T5.2, T5.3, T6.8) |
 | T44 | base | With `api.enabled: false`, kaddie-tools refuses to create an `Api` proposal, except one whose single reques... | T5.5 | v1 | unclaimed |
-| T45 | base | With proposals.expirySeconds unset, no proposal expires; with it set, a proposal expires at its creation ti... | T2.6 | v1 | unclaimed |
+| T45 | base | With proposals.expirySeconds unset, no proposal expires; with it set, a proposal expires at its creation ti... | T2.6 | v1 | pkg/proposal/canact_test.go:TestT45_CanActExpiry, pkg/proposal/canact_test.go:TestT45_ExpiryIgnoresTheSpec |
 | T46 | base | kaddie-sessions' retention loop never removes an open proposal, high risk or not, and removes closed ones (... | T4.8 | v1 | unclaimed |
 | T47 | base | A read proposal an operator dismissed is not proposed again for the same type in the same session, and `pro... | T7.1 | v1.1 | unclaimed |
 | T48 | base | In `git` ownership mode, `propose_read` edits only the configured file, kaddie-tools refuses to build an `A... | T7.2, T12.10 | v1.1 | unclaimed |

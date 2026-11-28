@@ -74,7 +74,11 @@ type Observed struct {
 // create, own changes are the body's fields and admission's are body fields
 // whose dry-run value differs, so server-applied defaults don't count. The
 // kaddie-agent-read exception holds only when the DryRun role passes the
-// read-role rule. Requests without an Observed entry are skipped.
+// read-role rule. Requests without an Observed entry, and entries for
+// requests the proposal doesn't have, are skipped. Findings are in request
+// order, and well-formedness and body hygiene are left to EvaluateStatic.
+// Target-rule findings carry SourceRequest. If the observed objects can't be
+// compared, the request's static changes stand in as its own.
 func EvaluateExact(p *v1alpha1.SREProposal, observed []Observed, schemas schema.Provider) []Finding {
 	return evaluateExact(p, observed, schemas)
 }
