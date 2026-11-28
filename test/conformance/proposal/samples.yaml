@@ -1,0 +1,45 @@
+# The two shipped samples: neither is high risk.
+
+# test/fixtures/yaml-samples/crds/sreproposal-api.yaml. The restart annotation is on the pod template's metadata, which holds no protected field; the HPA is no protected kind.
+- name: 'sample sreproposal-api.yaml: a restart and an HPA change'
+  tests: [T15, T16]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - verb: patch
+            apiVersion: apps/v1
+            resource: deployments
+            subresource: ""
+            namespace: payments
+            name: api
+            patchType: application/strategic-merge-patch+json
+            body: '{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"2026-11-11T09:00:00Z"}}}}}'
+          - verb: patch
+            apiVersion: autoscaling/v2
+            resource: horizontalpodautoscalers
+            namespace: payments
+            name: api
+            patchType: application/merge-patch+json
+            body: '{"spec":{"maxReplicas":12}}'
+      justification: "Pods crash after the 08:55 config change; a rollout restart picks up the fixed ConfigMap and HPA headroom avoids saturation."
+  static: []
+
+# test/fixtures/yaml-samples/crds/sreproposal-api-read.yaml. It appends a passing rule to kaddie-agent-read, which the RBAC protection exempts.
+- name: 'sample sreproposal-api-read.yaml: a read proposal for Certificates'
+  tests: [T15, T16, T25]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - verb: patch
+            apiVersion: rbac.authorization.k8s.io/v1
+            resource: clusterroles
+            namespace: ""
+            name: kaddie-agent-read
+            patchType: application/json-patch+json
+            body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'
+      justification: "The certificate behind the payments ingress may have expired; reading Certificates would confirm it."
+  static: []

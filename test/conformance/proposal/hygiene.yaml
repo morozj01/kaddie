@@ -1,0 +1,275 @@
+# Body hygiene (base 6.2): invalid JSON per verb and patch type, redaction
+# placeholders and invisible characters (T11, T34). Every request targets a
+# ConfigMap in payments, which no protection matches, so each vector shows the
+# hygiene finding alone. Bodies are written so that what reaches the engine is
+# exactly what the comment says: a \u200b inside single quotes is the six
+# characters of a JSON escape, one inside double quotes is the character.
+
+# Truncated, an array, a string, trailing content, null, single quotes and a number.
+- name: 'InvalidJSON: create needs a JSON object'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"metadata":'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '[]'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '"text"'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"a":1} {"b":2}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: 'null'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: "{'a':1}"}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '1'}
+      justification: A test proposal.
+  static:
+    - {reason: InvalidJSON, request: 0}
+    - {reason: InvalidJSON, request: 1}
+    - {reason: InvalidJSON, request: 2}
+    - {reason: InvalidJSON, request: 3}
+    - {reason: InvalidJSON, request: 4}
+    - {reason: InvalidJSON, request: 5}
+    - {reason: InvalidJSON, request: 6}
+
+- name: 'InvalidJSON: a merge patch and a strategic merge patch need a JSON object'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '[{"data":{"a":"b"}}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '"x"'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '{"data":'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: 'null'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/strategic-merge-patch+json, body: '[]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/strategic-merge-patch+json, body: '1'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/strategic-merge-patch+json, body: '{"data":{"a":'}
+      justification: A test proposal.
+  static:
+    - {reason: InvalidJSON, request: 0}
+    - {reason: InvalidJSON, request: 1}
+    - {reason: InvalidJSON, request: 2}
+    - {reason: InvalidJSON, request: 3}
+    - {reason: InvalidJSON, request: 4}
+    - {reason: InvalidJSON, request: 5}
+    - {reason: InvalidJSON, request: 6}
+
+# An object, a non-object operation, an unknown op, a missing value (add, replace, test), a missing from (move) and a non-string one (copy), a pointer without a leading slash or with a bad escape, a missing op or path, a non-string path, a truncated array and null.
+- name: 'InvalidJSON: a JSON Patch needs an array of well-formed operations'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '{"op":"add","path":"/data/a","value":"b"}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[1]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"frobnicate","path":"/data/a"}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"add","path":"/data/a"}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/data/a"}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"test","path":"/data/a"}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"move","path":"/data/b"}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"copy","path":"/data/b","from":5}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"add","path":"data/a","value":1}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"add","path":"/data/a~2","value":1}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"path":"/data/a","value":1}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"add","value":1}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"remove","path":5}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"add","path":"/data/a","value":1},'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: 'null'}
+      justification: A test proposal.
+  static:
+    - {reason: InvalidJSON, request: 0}
+    - {reason: InvalidJSON, request: 1}
+    - {reason: InvalidJSON, request: 2}
+    - {reason: InvalidJSON, request: 3}
+    - {reason: InvalidJSON, request: 4}
+    - {reason: InvalidJSON, request: 5}
+    - {reason: InvalidJSON, request: 6}
+    - {reason: InvalidJSON, request: 7}
+    - {reason: InvalidJSON, request: 8}
+    - {reason: InvalidJSON, request: 9}
+    - {reason: InvalidJSON, request: 10}
+    - {reason: InvalidJSON, request: 11}
+    - {reason: InvalidJSON, request: 12}
+    - {reason: InvalidJSON, request: 13}
+    - {reason: InvalidJSON, request: 14}
+
+- name: 'InvalidJSON: a delete body, when present, is an object'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c, body: '[1]'}
+          - {verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c, body: '"x"'}
+          - {verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c, body: 'null'}
+          - {verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c, body: '{"propagationPolicy":'}
+      justification: A test proposal.
+  static:
+    - {reason: InvalidJSON, request: 0}
+    - {reason: InvalidJSON, request: 1}
+    - {reason: InvalidJSON, request: 2}
+    - {reason: InvalidJSON, request: 3}
+
+# A JSON Patch value may be null; an empty pointer and an empty array are valid; a delete needs no body.
+- name: 'InvalidJSON near miss: valid bodies of every verb and patch type'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"metadata":{"name":"c"},"data":{"a":"b"}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":null}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '{}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/strategic-merge-patch+json, body: '{"data":{"a":"b"}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"remove","path":"/data/a"}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"add","path":"/data/a~1b","value":"x"}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"move","from":"/data/a","path":"/data/b"}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"copy","from":"/data/a","path":"/data/b"}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"test","path":"/data/a","value":null}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/data","value":{}}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[]'}
+          - {verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c}
+          - {verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c, body: '{}'}
+          - {verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c, body: '{"propagationPolicy":"Foreground"}'}
+      justification: A test proposal.
+  static: []
+
+# In a value, a key, a list, a larger string, and a JSON Patch path.
+- name: 'RedactedPlaceholder: a placeholder in a body is flagged on every verb and patch type'
+  tests: [T11, T34]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"data":{"token":"<redacted:secret-1>"}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"data":{"<redacted:key>":"v"}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":["x","<redacted:secret-1>"]}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"add","path":"/data/token","value":"<redacted:secret-1>"}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/strategic-merge-patch+json, body: '{"data":{"token":"<redacted:secret-1>"}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '{"data":{"conn":"postgres://u:<redacted:secret-1>@h/db"}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"add","path":"/data/<redacted:k>","value":"x"}]'}
+      justification: A test proposal.
+  static:
+    - {reason: RedactedPlaceholder, request: 0}
+    - {reason: RedactedPlaceholder, request: 1}
+    - {reason: RedactedPlaceholder, request: 2}
+    - {reason: RedactedPlaceholder, request: 3}
+    - {reason: RedactedPlaceholder, request: 4}
+    - {reason: RedactedPlaceholder, request: 5}
+    - {reason: RedactedPlaceholder, request: 6}
+
+# \u003c is <, so the decoded string holds the placeholder.
+- name: 'RedactedPlaceholder: a JSON-escaped placeholder is decoded first'
+  tests: [T11, T34]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"data":{"token":"\u003credacted:t\u003e"}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '{"data":{"\u003credacted:k\u003e":"v"}}'}
+      justification: A test proposal.
+  static:
+    - {reason: RedactedPlaceholder, request: 0}
+    - {reason: RedactedPlaceholder, request: 1}
+
+# The placeholder text would be written in place of the real value. The Secret protection flags the request too.
+- name: 'RedactedPlaceholder: a Secret that would be written with a placeholder'
+  tests: [T11, T34]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: secrets, namespace: payments, body: '{"metadata":{"name":"s"},"stringData":{"password":"<redacted:password>"}}'}
+      justification: A test proposal.
+  static:
+    - {reason: Secret, request: 0}
+    - {reason: RedactedPlaceholder, request: 0}
+
+# The marker is the exact text <redacted: and the placeholder form the redactor writes.
+- name: "RedactedPlaceholder near miss: text that isn't a placeholder"
+  tests: [T11, T34]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"data":{"a":"<redacted>"}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"data":{"a":"redacted:x"}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"data":{"a":"<redact:x>"}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"data":{"a":"< redacted:x>"}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"data":{"redacted":"yes","a":"<redacted"}}'}
+      justification: A test proposal.
+  static: []
+
+# Raw U+200B (0), the escape \u200b in a value (1), \u200d in a key (2), \u202e right-to-left override (3), \ue000 private use (4), a raw soft hyphen in a key (5), an escaped zero-width space in a JSON Patch path (6), and a raw U+FEFF that is not leading (7).
+- name: 'InvisibleCharacter: a raw or JSON-escaped zero-width or format character in a key or string'
+  tests: [T11, T34]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: "{\"data\":{\"a\":\"b\u200Bc\"}}"}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"data":{"a":"b\u200bc"}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"data":{"a\u200db":"x"}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b\u202ec"}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"data":{"a":"b\ue000c"}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: "{\"data\":{\"a\u00ADb\":\"x\"}}"}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"add","path":"/data/a\u200bb","value":"x"}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/strategic-merge-patch+json, body: "{\"data\":{\"a\":\"b\uFEFFc\"}}"}
+      justification: A test proposal.
+  static:
+    - {reason: InvisibleCharacter, request: 0}
+    - {reason: InvisibleCharacter, request: 1}
+    - {reason: InvisibleCharacter, request: 2}
+    - {reason: InvisibleCharacter, request: 3}
+    - {reason: InvisibleCharacter, request: 4}
+    - {reason: InvisibleCharacter, request: 5}
+    - {reason: InvisibleCharacter, request: 6}
+    - {reason: InvisibleCharacter, request: 7}
+
+# A BOM, and a zero-width space after the closing brace, aren't JSON whitespace: the API server would refuse them, but a client that strips them would show a different body than was proposed.
+- name: 'InvisibleCharacter: a leading byte-order mark is also invalid JSON'
+  tests: [T11, T34]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: "\uFEFF{\"data\":{\"a\":\"b\"}}"}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: "\uFEFF{\"data\":{\"a\":\"b\"}}"}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: "{\"data\":{\"a\":\"b\"}}\u200B"}
+      justification: A test proposal.
+  static:
+    - {reason: InvisibleCharacter, request: 0}
+    - {reason: InvisibleCharacter, request: 1}
+    - {reason: InvisibleCharacter, request: 2}
+    - {reason: InvalidJSON, request: 0}
+    - {reason: InvalidJSON, request: 1}
+    - {reason: InvalidJSON, request: 2}
+
+# Only Unicode categories Cf (format) and Co (private use) count: accents, CJK, emoji, a no-break space, combining marks, tabs and newlines don't.
+- name: 'InvisibleCharacter near miss: visible non-ASCII and ordinary control characters'
+  tests: [T11, T34]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: "{\"data\":{\"a\":\"caf\u00E9\"}}"}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: "{\"data\":{\"a\":\"\u65E5\u672C\u8A9E\"}}"}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"data":{"a":"line1\nline2\ttab"}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: "{\"data\":{\"a\":\"a\u00A0b\"}}"}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: "{\"data\":{\"a\":\"party \U0001F389\"}}"}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: "{\"data\":{\"a\":\"e\u0301\"}}"}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: "{\u000A  \"data\": {\u000A    \"a\": \"b\"\u000A  }\u000A}"}
+      justification: A test proposal.
+  static: []

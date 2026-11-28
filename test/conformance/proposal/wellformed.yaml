@@ -1,0 +1,272 @@
+# Well-formedness (base 4.1 and 6.1), re-checked so no client depends on the
+# CRD schema being installed correctly. A violation names its request when it
+# is about one, and is NoRequest (-1) otherwise. The protections still run on
+# a malformed request wherever they can. Limits on lengths and sizes are in the
+# Go tests, which generate their inputs.
+
+- name: 'Malformed: the type must be Api or Git'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Other
+      api:
+        requests:
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c }
+      justification: j
+  static:
+    - {reason: Malformed, request: -1}
+
+- name: 'Malformed: an Api proposal needs an api block'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      git:
+        repository: platform
+        baseSHA: 0123456789abcdef0123456789abcdef01234567
+        edits:
+          - { path: a.yaml, operation: Delete }
+      justification: j
+  static:
+    - {reason: Malformed, request: -1}
+
+- name: "Malformed: an Api proposal can't also have a git block"
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c }
+      git:
+        repository: platform
+        baseSHA: 0123456789abcdef0123456789abcdef01234567
+        edits:
+          - { path: a.yaml, operation: Delete }
+      justification: j
+  static:
+    - {reason: Malformed, request: -1}
+
+- name: 'Malformed: a Git proposal needs a git block'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Git
+      api:
+        requests:
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c }
+      justification: j
+  static:
+    - {reason: Malformed, request: -1}
+
+- name: "Malformed: a Git proposal can't also have an api block"
+  tests: [T11]
+  proposal:
+    spec:
+      type: Git
+      git:
+        repository: platform
+        baseSHA: 0123456789abcdef0123456789abcdef01234567
+        edits:
+          - { path: a.yaml, operation: Delete }
+      api:
+        requests:
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c }
+      justification: j
+  static:
+    - {reason: Malformed, request: -1}
+
+- name: 'Malformed: an Api proposal needs at least one request'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests: []
+      justification: j
+  static:
+    - {reason: Malformed, request: -1}
+
+- name: 'Malformed: an Api proposal has at most 20 requests'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c0 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c1 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c2 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c3 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c4 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c5 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c6 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c7 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c8 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c9 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c10 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c11 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c12 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c13 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c14 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c15 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c16 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c17 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c18 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c19 }
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c20 }
+      justification: j
+  static:
+    - {reason: Malformed, request: -1}
+
+- name: 'Malformed: at most 20 evidence references'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - { verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c }
+      justification: j
+      evidence:
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p0 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p1 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p2 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p3 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p4 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p5 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p6 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p7 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p8 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p9 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p10 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p11 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p12 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p13 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p14 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p15 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p16 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p17 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p18 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p19 }
+        - { apiGroup: '', kind: Pod, namespace: payments, name: p20 }
+  static:
+    - {reason: Malformed, request: -1}
+
+- name: 'Malformed: the verb is create, patch or delete'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: update, apiVersion: v1, resource: configmaps, namespace: payments, name: c, body: '{"data":{"a":"b"}}'}
+      justification: A test proposal.
+  static:
+    - {reason: Malformed, request: 0}
+
+- name: 'Malformed: patch and delete need a name'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+          - {verb: delete, apiVersion: v1, resource: configmaps, namespace: payments}
+      justification: A test proposal.
+  static:
+    - {reason: Malformed, request: 0}
+    - {reason: Malformed, request: 1}
+
+- name: 'Malformed: patch needs a patch type, one of the three'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, body: '{"data":{"a":"b"}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/apply-patch+yaml, body: '{"data":{"a":"b"}}'}
+      justification: A test proposal.
+  static:
+    - {reason: Malformed, request: 0}
+    - {reason: Malformed, request: 1}
+
+- name: 'Malformed: create and patch need a body, which is then not valid JSON either'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json}
+      justification: A test proposal.
+  static:
+    - {reason: Malformed, request: 0}
+    - {reason: InvalidJSON, request: 0}
+    - {reason: Malformed, request: 1}
+    - {reason: InvalidJSON, request: 1}
+
+# A request with no target can't match a protection, so only the last one is a Secret request.
+- name: "Malformed: the apiVersion is v1 or group/version, and then the target isn't matched"
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: delete, apiVersion: apps, resource: secrets, namespace: payments, name: s}
+          - {verb: delete, apiVersion: "", resource: secrets, namespace: payments, name: s}
+          - {verb: delete, apiVersion: a/b/c, resource: secrets, namespace: payments, name: s}
+          - {verb: delete, apiVersion: '/v1', resource: secrets, namespace: payments, name: s}
+          - {verb: delete, apiVersion: v1, resource: secrets, namespace: payments, name: s}
+      justification: A test proposal.
+  static:
+    - {reason: Malformed, request: 0}
+    - {reason: Malformed, request: 1}
+    - {reason: Malformed, request: 2}
+    - {reason: Malformed, request: 3}
+    - {reason: Secret, request: 4}
+
+- name: 'Malformed: the resource is required'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: delete, apiVersion: v1, resource: "", namespace: payments, name: x}
+      justification: A test proposal.
+  static:
+    - {reason: Malformed, request: 0}
+
+- name: "Malformed: body hygiene runs on a request whose apiVersion doesn't parse"
+  tests: [T11, T34]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: apps, resource: configmaps, namespace: payments, body: '{"data":{"a":"<redacted:x>"}}'}
+      justification: A test proposal.
+  static:
+    - {reason: Malformed, request: 0}
+    - {reason: RedactedPlaceholder, request: 0}
+
+# A cluster-scoped resource has no namespace; a subresource is optional.
+- name: 'Malformed near miss: a well-formed request of each verb'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"metadata":{"name":"c"}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+          - {verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c}
+          - {verb: delete, apiVersion: v1, resource: namespaces, name: scratch}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, subresource: scale, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"spec":{"replicas":2}}'}
+      justification: A test proposal.
+  static: []

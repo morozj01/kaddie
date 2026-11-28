@@ -1,0 +1,472 @@
+# Built-in protections (base 6.3), one match vector and one near-miss vector
+# each (T15), and the match-field semantics of base 4.2 as the catalogue uses
+# them (T12, T14). Expected findings are derived from the spec's catalogue, not
+# from running the engine. A vector's `request` is the index in
+# spec.api.requests, -1 for the proposal itself.
+
+# The rule lists only apiGroups, so every verb and namespace matches (T12: omitted fields match anything).
+- name: 'KaddieGroup: any object of kaddie.org, whatever the verb'
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: kaddie.org/v1alpha1, resource: sreconfigs, name: default, patchType: application/merge-patch+json, body: '{"spec":{"mode":"Halted"}}'}
+          - {verb: create, apiVersion: kaddie.org/v1alpha1, resource: sretriggers, namespace: payments, body: '{"metadata":{"name":"t"},"spec":{}}'}
+          - {verb: delete, apiVersion: kaddie.org/v1alpha1, resource: sreproposals, namespace: payments, name: old}
+      justification: A test proposal.
+  static:
+    - {reason: KaddieGroup, request: 0}
+    - {reason: KaddieGroup, request: 1}
+    - {reason: KaddieGroup, request: 2}
+
+# kaddie.io and foo.kaddie.org are other groups; apiGroups match exactly.
+- name: 'KaddieGroup near miss: lookalike groups'
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: kaddie.io/v1, resource: widgets, namespace: payments, body: '{"metadata":{"name":"w"}}'}
+          - {verb: create, apiVersion: foo.kaddie.org/v1, resource: widgets, namespace: payments, body: '{"metadata":{"name":"w"}}'}
+      justification: A test proposal.
+  static: []
+
+# Request 1 is the namespaces resource, which is in the namespace its name names; request 2 asks for payments but its body says kaddie-system.
+- name: 'KaddieNamespace: objects in kaddie-system and the namespace itself'
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: kaddie-system, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+          - {verb: patch, apiVersion: v1, resource: namespaces, name: kaddie-system, patchType: application/merge-patch+json, body: '{"metadata":{"labels":{"a":"b"}}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"metadata":{"name":"c","namespace":"kaddie-system"},"data":{"a":"b"}}'}
+          - {verb: delete, apiVersion: apps/v1, resource: deployments, namespace: kaddie-system, name: api}
+      justification: A test proposal.
+  static:
+    - {reason: KaddieNamespace, request: 0}
+    - {reason: KaddieNamespace, request: 1}
+    - {reason: KaddieNamespace, request: 2}
+    - {reason: KaddieNamespace, request: 3}
+
+# Namespaces match exactly; only generateName and names use prefixes.
+- name: 'KaddieNamespace near miss: other namespaces with similar names'
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: kaddie-systems, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+          - {verb: patch, apiVersion: v1, resource: namespaces, name: kaddie, patchType: application/merge-patch+json, body: '{"metadata":{"labels":{"a":"b"}}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: kaddie-system-old, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+      justification: A test proposal.
+  static: []
+
+- name: 'SystemNamespace: kube-system, kube-public, kube-node-lease and their namespace objects'
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: kube-system, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: kube-public, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: kube-node-lease, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+          - {verb: patch, apiVersion: v1, resource: namespaces, name: kube-node-lease, patchType: application/merge-patch+json, body: '{"metadata":{"labels":{"a":"b"}}}'}
+      justification: A test proposal.
+  static:
+    - {reason: SystemNamespace, request: 0}
+    - {reason: SystemNamespace, request: 1}
+    - {reason: SystemNamespace, request: 2}
+    - {reason: SystemNamespace, request: 3}
+
+- name: 'SystemNamespace near miss: other kube- namespaces'
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: kube-flannel, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: kube, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+          - {verb: patch, apiVersion: v1, resource: namespaces, name: kube-system-x, patchType: application/merge-patch+json, body: '{"metadata":{"labels":{"a":"b"}}}'}
+      justification: A test proposal.
+  static: []
+
+# Only a patch of the ClusterRole kaddie-agent-read is exempt; see readrole.yaml.
+- name: 'RBAC: every verb on roles and bindings, cluster and namespaced'
+  tests: [T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterroles, body: '{"metadata":{"name":"x"},"rules":[]}'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: clusterrolebindings, name: x, patchType: application/merge-patch+json, body: '{"subjects":[]}'}
+          - {verb: patch, apiVersion: rbac.authorization.k8s.io/v1, resource: roles, namespace: payments, name: x, patchType: application/merge-patch+json, body: '{"rules":[]}'}
+          - {verb: delete, apiVersion: rbac.authorization.k8s.io/v1, resource: rolebindings, namespace: payments, name: x}
+      justification: A test proposal.
+  static:
+    - {reason: RBAC, request: 0}
+    - {reason: RBAC, request: 1}
+    - {reason: RBAC, request: 2}
+    - {reason: RBAC, request: 3}
+
+# authorization.k8s.io is the access-review group, not RBAC.
+- name: 'RBAC near miss: other groups that sound like RBAC'
+  tests: [T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: rbac.example.com/v1, resource: roles, namespace: payments, body: '{"metadata":{"name":"x"}}'}
+          - {verb: create, apiVersion: authorization.k8s.io/v1, resource: subjectaccessreviews, body: '{"spec":{"user":"alice"}}'}
+      justification: A test proposal.
+  static: []
+
+# The rule lists the whole group.
+- name: 'AdmissionControl: webhook configurations and admission policies'
+  tests: [T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: admissionregistration.k8s.io/v1, resource: validatingwebhookconfigurations, name: w, patchType: application/merge-patch+json, body: '{"webhooks":[]}'}
+          - {verb: create, apiVersion: admissionregistration.k8s.io/v1, resource: mutatingwebhookconfigurations, body: '{"metadata":{"name":"w"}}'}
+          - {verb: patch, apiVersion: admissionregistration.k8s.io/v1, resource: validatingadmissionpolicies, name: p, patchType: application/merge-patch+json, body: '{"spec":{"failurePolicy":"Ignore"}}'}
+          - {verb: delete, apiVersion: admissionregistration.k8s.io/v1, resource: validatingadmissionpolicybindings, name: b}
+      justification: A test proposal.
+  static:
+    - {reason: AdmissionControl, request: 0}
+    - {reason: AdmissionControl, request: 1}
+    - {reason: AdmissionControl, request: 2}
+    - {reason: AdmissionControl, request: 3}
+
+- name: 'AdmissionControl near miss: other groups'
+  tests: [T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: admission.k8s.io/v1, resource: admissionreviews, body: '{"request":{"uid":"u"}}'}
+          - {verb: create, apiVersion: admissionregistration.example.com/v1, resource: webhooks, body: '{"metadata":{"name":"w"}}'}
+      justification: A test proposal.
+  static: []
+
+- name: 'CustomResourceDefinition: create, patch and delete'
+  tests: [T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apiextensions.k8s.io/v1, resource: customresourcedefinitions, name: widgets.example.com, patchType: application/merge-patch+json, body: '{"spec":{"conversion":{"strategy":"None"}}}'}
+          - {verb: create, apiVersion: apiextensions.k8s.io/v1, resource: customresourcedefinitions, body: '{"metadata":{"name":"widgets.example.com"}}'}
+          - {verb: delete, apiVersion: apiextensions.k8s.io/v1, resource: customresourcedefinitions, name: widgets.example.com}
+      justification: A test proposal.
+  static:
+    - {reason: CustomResourceDefinition, request: 0}
+    - {reason: CustomResourceDefinition, request: 1}
+    - {reason: CustomResourceDefinition, request: 2}
+
+# The rule is on the resource customresourcedefinitions of apiextensions.k8s.io, not the whole group.
+- name: 'CustomResourceDefinition near miss: an instance of a CRD and another resource of the group'
+  tests: [T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: example.com/v1, resource: widgets, namespace: payments, body: '{"metadata":{"name":"w"}}'}
+          - {verb: patch, apiVersion: apiextensions.k8s.io/v1, resource: widgets, name: w, patchType: application/merge-patch+json, body: '{"spec":{}}'}
+          - {verb: create, apiVersion: apiextensions.example.io/v1, resource: customresourcedefinitions, body: '{"metadata":{"name":"x"}}'}
+      justification: A test proposal.
+  static: []
+
+- name: 'APIService: patch and delete'
+  tests: [T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apiregistration.k8s.io/v1, resource: apiservices, name: v1beta1.metrics.k8s.io, patchType: application/merge-patch+json, body: '{"spec":{"insecureSkipTLSVerify":true}}'}
+          - {verb: delete, apiVersion: apiregistration.k8s.io/v1, resource: apiservices, name: v1beta1.metrics.k8s.io}
+      justification: A test proposal.
+  static:
+    - {reason: APIService, request: 0}
+    - {reason: APIService, request: 1}
+
+- name: 'APIService near miss: another resource and another group'
+  tests: [T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apiregistration.k8s.io/v1, resource: widgets, name: w, patchType: application/merge-patch+json, body: '{"spec":{}}'}
+          - {verb: patch, apiVersion: apiregistration.io/v1, resource: apiservices, name: a, patchType: application/merge-patch+json, body: '{"spec":{}}'}
+      justification: A test proposal.
+  static: []
+
+# A rule resource of the form r/sub matches that subresource of r.
+- name: 'ServiceAccountToken: minting a token'
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: serviceaccounts, subresource: token, namespace: payments, name: app, body: '{"apiVersion":"authentication.k8s.io/v1","kind":"TokenRequest","spec":{"audiences":["https://kubernetes.default.svc"]}}'}
+      justification: A test proposal.
+  static:
+    - {reason: ServiceAccountToken, request: 0}
+
+# r/sub matches only that subresource: not r, not r/other. A request on the subresource of another group's serviceaccounts doesn't exist.
+- name: 'ServiceAccountToken near miss: the ServiceAccount itself and its other subresources'
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: serviceaccounts, namespace: payments, body: '{"metadata":{"name":"app2"}}'}
+          - {verb: patch, apiVersion: v1, resource: serviceaccounts, namespace: payments, name: app, patchType: application/merge-patch+json, body: '{"metadata":{"labels":{"a":"b"}}}'}
+          - {verb: patch, apiVersion: v1, resource: serviceaccounts, subresource: status, namespace: payments, name: app, patchType: application/merge-patch+json, body: '{"metadata":{"labels":{"a":"b"}}}'}
+      justification: A test proposal.
+  static: []
+
+- name: 'CSRApproval: approving a request'
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: certificates.k8s.io/v1, resource: certificatesigningrequests, subresource: approval, name: csr-1, patchType: application/merge-patch+json, body: '{"status":{"conditions":[{"type":"Approved","status":"True","reason":"Reviewed"}]}}'}
+      justification: A test proposal.
+  static:
+    - {reason: CSRApproval, request: 0}
+
+- name: 'CSRApproval near miss: the request itself and its status'
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: certificates.k8s.io/v1, resource: certificatesigningrequests, subresource: status, name: csr-1, patchType: application/merge-patch+json, body: '{"status":{"conditions":[{"type":"Approved","status":"True","reason":"Reviewed"}]}}'}
+          - {verb: create, apiVersion: certificates.k8s.io/v1, resource: certificatesigningrequests, body: '{"metadata":{"name":"csr-2"},"spec":{"request":"abc"}}'}
+          - {verb: delete, apiVersion: certificates.k8s.io/v1, resource: certificatesigningrequests, name: csr-1}
+      justification: A test proposal.
+  static: []
+
+# A bare resource in a rule also matches all of its subresources (T12), so request 3 matches.
+- name: 'Secret: create, patch, delete and any subresource'
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: secrets, namespace: payments, body: '{"metadata":{"name":"s"},"stringData":{"k":"v"}}'}
+          - {verb: patch, apiVersion: v1, resource: secrets, namespace: payments, name: s, patchType: application/merge-patch+json, body: '{"stringData":{"k":"v"}}'}
+          - {verb: delete, apiVersion: v1, resource: secrets, namespace: payments, name: s}
+          - {verb: patch, apiVersion: v1, resource: secrets, subresource: status, namespace: payments, name: s, patchType: application/merge-patch+json, body: '{"data":{"a":"b"}}'}
+      justification: A test proposal.
+  static:
+    - {reason: Secret, request: 0}
+    - {reason: Secret, request: 1}
+    - {reason: Secret, request: 2}
+    - {reason: Secret, request: 3}
+
+# Only the core group's secrets resource is protected here; kinds that deliver secrets are SecretDeliveryKind.
+- name: "Secret near miss: ConfigMaps and another group's secrets"
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"metadata":{"name":"c"},"data":{"secrets":"no"}}'}
+          - {verb: create, apiVersion: example.com/v1, resource: secrets, namespace: payments, body: '{"metadata":{"name":"s"}}'}
+      justification: A test proposal.
+  static: []
+
+# Plan decision 7: external-secrets.io (5 resources), bitnami.com sealedsecrets, secrets-store.csi.x-k8s.io secretproviderclasses, secrets.hashicorp.com (6), onepassword.com onepassworditems.
+- name: 'SecretDeliveryKind: every listed kind'
+  tests: [T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: delete, apiVersion: external-secrets.io/v1beta1, resource: externalsecrets, namespace: payments, name: x}
+          - {verb: delete, apiVersion: external-secrets.io/v1beta1, resource: clusterexternalsecrets, namespace: payments, name: x}
+          - {verb: delete, apiVersion: external-secrets.io/v1beta1, resource: secretstores, namespace: payments, name: x}
+          - {verb: delete, apiVersion: external-secrets.io/v1beta1, resource: clustersecretstores, namespace: payments, name: x}
+          - {verb: delete, apiVersion: external-secrets.io/v1beta1, resource: pushsecrets, namespace: payments, name: x}
+          - {verb: delete, apiVersion: bitnami.com/v1alpha1, resource: sealedsecrets, namespace: payments, name: x}
+          - {verb: delete, apiVersion: secrets-store.csi.x-k8s.io/v1, resource: secretproviderclasses, namespace: payments, name: x}
+          - {verb: delete, apiVersion: secrets.hashicorp.com/v1beta1, resource: vaultauths, namespace: payments, name: x}
+          - {verb: delete, apiVersion: secrets.hashicorp.com/v1beta1, resource: vaultauthglobals, namespace: payments, name: x}
+          - {verb: delete, apiVersion: secrets.hashicorp.com/v1beta1, resource: vaultconnections, namespace: payments, name: x}
+          - {verb: delete, apiVersion: secrets.hashicorp.com/v1beta1, resource: vaultdynamicsecrets, namespace: payments, name: x}
+          - {verb: delete, apiVersion: secrets.hashicorp.com/v1beta1, resource: vaultpkisecrets, namespace: payments, name: x}
+          - {verb: delete, apiVersion: secrets.hashicorp.com/v1beta1, resource: vaultstaticsecrets, namespace: payments, name: x}
+          - {verb: delete, apiVersion: onepassword.com/v1, resource: onepassworditems, namespace: payments, name: x}
+      justification: A test proposal.
+  static:
+    - {reason: SecretDeliveryKind, request: 0}
+    - {reason: SecretDeliveryKind, request: 1}
+    - {reason: SecretDeliveryKind, request: 2}
+    - {reason: SecretDeliveryKind, request: 3}
+    - {reason: SecretDeliveryKind, request: 4}
+    - {reason: SecretDeliveryKind, request: 5}
+    - {reason: SecretDeliveryKind, request: 6}
+    - {reason: SecretDeliveryKind, request: 7}
+    - {reason: SecretDeliveryKind, request: 8}
+    - {reason: SecretDeliveryKind, request: 9}
+    - {reason: SecretDeliveryKind, request: 10}
+    - {reason: SecretDeliveryKind, request: 11}
+    - {reason: SecretDeliveryKind, request: 12}
+    - {reason: SecretDeliveryKind, request: 13}
+
+- name: 'SecretDeliveryKind near miss: other resources of those groups and other groups'
+  tests: [T15]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: delete, apiVersion: external-secrets.io/v1beta1, resource: widgets, namespace: payments, name: x}
+          - {verb: delete, apiVersion: bitnami.com/v1alpha1, resource: widgets, namespace: payments, name: x}
+          - {verb: delete, apiVersion: secrets-store.csi.x-k8s.io/v1, resource: widgets, namespace: payments, name: x}
+          - {verb: delete, apiVersion: secrets.hashicorp.com/v1beta1, resource: widgets, namespace: payments, name: x}
+          - {verb: delete, apiVersion: onepassword.com/v1, resource: widgets, namespace: payments, name: x}
+          - {verb: delete, apiVersion: external-secrets.example.com/v1, resource: externalsecrets, namespace: payments, name: x}
+      justification: A test proposal.
+  static: []
+
+# source.toolkit.fluxcd.io is listed with resource *, so any resource of the group matches (T12).
+- name: 'ReconcilerKind: Argo CD and Flux kinds, and every source.toolkit.fluxcd.io resource'
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: delete, apiVersion: argoproj.io/v1alpha1, resource: applications, namespace: payments, name: x}
+          - {verb: delete, apiVersion: argoproj.io/v1alpha1, resource: applicationsets, namespace: payments, name: x}
+          - {verb: delete, apiVersion: argoproj.io/v1alpha1, resource: appprojects, namespace: payments, name: x}
+          - {verb: delete, apiVersion: source.toolkit.fluxcd.io/v1, resource: gitrepositories, namespace: payments, name: x}
+          - {verb: delete, apiVersion: source.toolkit.fluxcd.io/v1, resource: helmrepositories, namespace: payments, name: x}
+          - {verb: delete, apiVersion: source.toolkit.fluxcd.io/v1, resource: buckets, namespace: payments, name: x}
+          - {verb: delete, apiVersion: source.toolkit.fluxcd.io/v1, resource: ocirepositories, namespace: payments, name: x}
+          - {verb: delete, apiVersion: kustomize.toolkit.fluxcd.io/v1, resource: kustomizations, namespace: payments, name: x}
+          - {verb: delete, apiVersion: helm.toolkit.fluxcd.io/v2, resource: helmreleases, namespace: payments, name: x}
+          - {verb: delete, apiVersion: image.toolkit.fluxcd.io/v1beta2, resource: imagerepositories, namespace: payments, name: x}
+          - {verb: delete, apiVersion: image.toolkit.fluxcd.io/v1beta2, resource: imagepolicies, namespace: payments, name: x}
+          - {verb: delete, apiVersion: image.toolkit.fluxcd.io/v1beta2, resource: imageupdateautomations, namespace: payments, name: x}
+      justification: A test proposal.
+  static:
+    - {reason: ReconcilerKind, request: 0}
+    - {reason: ReconcilerKind, request: 1}
+    - {reason: ReconcilerKind, request: 2}
+    - {reason: ReconcilerKind, request: 3}
+    - {reason: ReconcilerKind, request: 4}
+    - {reason: ReconcilerKind, request: 5}
+    - {reason: ReconcilerKind, request: 6}
+    - {reason: ReconcilerKind, request: 7}
+    - {reason: ReconcilerKind, request: 8}
+    - {reason: ReconcilerKind, request: 9}
+    - {reason: ReconcilerKind, request: 10}
+    - {reason: ReconcilerKind, request: 11}
+
+# Argo Rollouts share the argoproj.io group but aren't in the catalogue; notification.toolkit.fluxcd.io isn't listed.
+- name: 'ReconcilerKind near miss: other resources of the groups and other Flux groups'
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: delete, apiVersion: argoproj.io/v1alpha1, resource: rollouts, namespace: payments, name: x}
+          - {verb: delete, apiVersion: kustomize.toolkit.fluxcd.io/v1, resource: widgets, namespace: payments, name: x}
+          - {verb: delete, apiVersion: helm.toolkit.fluxcd.io/v2, resource: widgets, namespace: payments, name: x}
+          - {verb: delete, apiVersion: image.toolkit.fluxcd.io/v1beta2, resource: widgets, namespace: payments, name: x}
+          - {verb: delete, apiVersion: notification.toolkit.fluxcd.io/v1, resource: alerts, namespace: payments, name: x}
+      justification: A test proposal.
+  static: []
+
+# A proposal can't express deletecollection (T10), so it is Malformed; the protection runs anyway so a client that skips the Malformed check still flags it.
+- name: 'DeleteCollection: the deletecollection verb is also malformed'
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: deletecollection, apiVersion: v1, resource: configmaps, namespace: payments}
+      justification: A test proposal.
+  static:
+    - {reason: Malformed, request: 0}
+    - {reason: DeleteCollection, request: 0}
+
+# Verbs match exactly.
+- name: 'DeleteCollection near miss: a delete of one named object'
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c}
+      justification: A test proposal.
+  static: []
+
+# A rule resource */sub matches sub on any resource, in any group (T12).
+- name: 'ConnectSubresource: exec, attach, portforward and proxy on any resource and group'
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: pods, subresource: exec, namespace: payments, name: web, body: '{"stdin":true,"container":"app"}'}
+          - {verb: create, apiVersion: v1, resource: pods, subresource: attach, namespace: payments, name: web, body: '{"stdin":true,"container":"app"}'}
+          - {verb: create, apiVersion: v1, resource: pods, subresource: portforward, namespace: payments, name: web, body: '{}'}
+          - {verb: create, apiVersion: v1, resource: pods, subresource: proxy, namespace: payments, name: web, body: '{}'}
+          - {verb: create, apiVersion: v1, resource: services, subresource: proxy, namespace: payments, name: web, body: '{}'}
+          - {verb: create, apiVersion: v1, resource: nodes, subresource: proxy, name: n1, body: '{}'}
+          - {verb: create, apiVersion: example.com/v1, resource: widgets, subresource: exec, namespace: payments, name: w, body: '{}'}
+      justification: A test proposal.
+  static:
+    - {reason: ConnectSubresource, request: 0}
+    - {reason: ConnectSubresource, request: 1}
+    - {reason: ConnectSubresource, request: 2}
+    - {reason: ConnectSubresource, request: 3}
+    - {reason: ConnectSubresource, request: 4}
+    - {reason: ConnectSubresource, request: 5}
+    - {reason: ConnectSubresource, request: 6}
+
+- name: 'ConnectSubresource near miss: other subresources'
+  tests: [T15, T12]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: pods, subresource: binding, namespace: payments, name: web, body: '{"target":{"name":"n1"}}'}
+          - {verb: create, apiVersion: v1, resource: pods, subresource: eviction, namespace: payments, name: web, body: '{"metadata":{"name":"web"}}'}
+          - {verb: patch, apiVersion: v1, resource: services, subresource: status, namespace: payments, name: web, patchType: application/merge-patch+json, body: '{"status":{"loadBalancer":{}}}'}
+      justification: A test proposal.
+  static: []
