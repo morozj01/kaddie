@@ -3,6 +3,7 @@ package proposal
 import (
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/morozj01/kaddie/pkg/apis/v1alpha1"
 	"github.com/morozj01/kaddie/pkg/proposal/changes"
@@ -26,80 +27,116 @@ func evaluateStatic(p *v1alpha1.SREProposal, schemas schema.Provider) []Finding 
 	return out
 }
 
-// protectionFindings matches one request against the catalogue. A protection
-// whose rule has no fields is reported once, when the request's target
-// matches. A rule with fields matches only when the request writes one of
-// them, and each protected path is reported once with the first change that
-// matched it. A request whose apiVersion doesn't parse has no target, so
-// Malformed is all that reports it.
+// protectionFindings matches one request against the catalogue from its own
+// content: field rules see the changes it may make (changes.Static), and the
+// kaddie-agent-read exception is judged on its patch body. A request whose
+// apiVersion doesn't parse has no target, so Malformed is all that reports it.
 func protectionFindings(index int, req v1alpha1.RequestFields, schemas schema.Provider) []Finding {
 	t, err := targetOf(req)
 	if err != nil {
 		return nil
 	}
-	changed := lazyChanges(req, t, schemas)
+	return matchProtections(protectionInput{
+		index: index,
+		t:     t,
+		changed: sync.OnceValue(func() requestChanges {
+			root := rootOf(req, t, schemas)
+			return requestChanges{
+				root: root,
+				own:  withoutIgnored(changes.Static(req.Verb, req.PatchType, []byte(req.Body), root), t.subresource),
+			}
+		}),
+		readRolePasses: func() bool { return patchPassesReadRole(req.PatchType, req.Body) },
+	})
+}
+
+// requestChanges are the fields a request changes, split by who changes them.
+// Static evaluation has own changes only.
+type requestChanges struct {
+	// root is the schema of the object, which says whether a field can exist
+	// beneath a Subtree change.
+	root schema.Node
+	// own are the changes the request itself makes; admission's are the ones
+	// the server's admission adds on top (exact evaluation only).
+	own, admission []fieldpath.Change
+}
+
+// protectionInput is what the catalogue is matched against. Static and exact
+// evaluation differ only in these inputs, so they share matchProtections.
+type protectionInput struct {
+	index int
+	t     target
+	// ownSource is the Source of a finding caused by an own change or by the
+	// target alone: empty for static, SourceRequest for exact.
+	ownSource Source
+	// changed returns the changes field rules match against. Most requests
+	// match no field rule, and then it is never called.
+	changed func() requestChanges
+	// readRolePasses judges the kaddie-agent-read exception: whether the
+	// role the request leaves behind passes the read-role rule.
+	readRolePasses func() bool
+}
+
+// matchProtections matches one request against the catalogue, in catalogue
+// order. A protection whose rule has no fields is reported once, when the
+// request's target matches. A rule with fields matches only when the request
+// changes one of them, and each protected path is reported once with the
+// first change that matched it, an own change before an admission one.
+func matchProtections(in protectionInput) []Finding {
 	var out []Finding
 	for _, prot := range catalogue {
 		targetHit := false
 		seen := map[string]bool{}
 		for _, rule := range prot.Rules {
-			if !rule.matchesTarget(t) {
+			if !rule.matchesTarget(in.t) {
 				continue
 			}
 			if len(rule.Fields) == 0 {
 				targetHit = true
 				continue
 			}
-			if req.Verb == verbDelete {
+			if in.t.verb == verbDelete {
 				continue
 			}
-			root, chs := changed()
+			ch := in.changed()
 			for _, path := range rule.Fields {
 				field := path.String()
 				if seen[field] {
 					continue
 				}
-				if c, ok := firstMatch(path, chs, root); ok {
+				source := in.ownSource
+				c, ok := firstMatch(path, ch.own, ch.root)
+				if !ok {
+					c, ok = firstMatch(path, ch.admission, ch.root)
+					source = SourceAdmission
+				}
+				if ok {
 					seen[field] = true
-					out = append(out, Finding{Reason: prot.Reason, Request: index, Field: field,
-						Changed: fieldpath.Format(c.Path), Explanation: prot.Explanation})
+					out = append(out, Finding{Reason: prot.Reason, Request: in.index, Field: field,
+						Changed: fieldpath.Format(c.Path), Source: source, Explanation: prot.Explanation})
 				}
 			}
 		}
 		if targetHit {
-			if reason, flagged := applyException(prot.Reason, t, req); flagged {
+			if reason, flagged := applyException(prot.Reason, in.t, in.readRolePasses); flagged {
 				explanation := prot.Explanation
 				if reason == ReadRoleRule {
 					explanation = readRoleExplanation
 				}
-				out = append(out, Finding{Reason: reason, Request: index, Explanation: explanation})
+				out = append(out, Finding{Reason: reason, Request: in.index, Source: in.ownSource, Explanation: explanation})
 			}
 		}
 	}
 	return out
 }
 
-// lazyChanges returns a function that computes, once, the schema root of the
-// request and the fields its body may change, less the ignored ones. Most
-// requests match no field rule, and then nothing is computed.
-func lazyChanges(req v1alpha1.RequestFields, t target, schemas schema.Provider) func() (schema.Node, []fieldpath.Change) {
-	var (
-		done bool
-		root schema.Node
-		chs  []fieldpath.Change
-	)
-	return func() (schema.Node, []fieldpath.Change) {
-		if !done {
-			done = true
-			version := req.APIVersion
-			if _, v, ok := strings.Cut(req.APIVersion, "/"); ok {
-				version = v
-			}
-			root = schemas.Root(schema.Resource{Group: t.group, Version: version, Resource: t.resource, Subresource: t.subresource})
-			chs = withoutIgnored(changes.Static(req.Verb, req.PatchType, []byte(req.Body), root), t.subresource)
-		}
-		return root, chs
+// rootOf returns the schema of the object a request writes.
+func rootOf(req v1alpha1.RequestFields, t target, schemas schema.Provider) schema.Node {
+	version := req.APIVersion
+	if _, v, ok := strings.Cut(req.APIVersion, "/"); ok {
+		version = v
 	}
+	return schemas.Root(schema.Resource{Group: t.group, Version: version, Resource: t.resource, Subresource: t.subresource})
 }
 
 // firstMatch returns the first change that a field rule path names, or whose

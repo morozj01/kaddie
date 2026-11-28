@@ -27,14 +27,14 @@ const readRoleExplanation = "The request patches the kaddie-agent-read ClusterRo
 
 // applyException decides whether a protection whose rules matched a request
 // is reported, and under which reason. Only the RBAC protection has an
-// exception: for a patch of kaddie-agent-read it is not reported when the
-// patch passes the read-role rule, and is reported as ReadRoleRule when it
-// doesn't.
-func applyException(reason Reason, t target, req v1alpha1.RequestFields) (Reason, bool) {
+// exception: for a patch of kaddie-agent-read it is not reported when
+// readRolePasses says the result passes the read-role rule, and is reported
+// as ReadRoleRule when it doesn't.
+func applyException(reason Reason, t target, readRolePasses func() bool) (Reason, bool) {
 	if reason != RBAC || !targetsAgentReadRole(t) {
 		return reason, true
 	}
-	if patchPassesReadRole(req.PatchType, req.Body) {
+	if readRolePasses() {
 		return reason, false
 	}
 	return ReadRoleRule, true
