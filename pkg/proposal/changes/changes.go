@@ -45,16 +45,16 @@ import (
 func Static(verb v1alpha1.RequestVerb, pt v1alpha1.PatchType, body []byte, root schema.Node) []fieldpath.Change {
 	var set changeSet
 	switch verb {
-	case verbDelete:
+	case v1alpha1.RequestVerbDelete:
 		return nil
-	case verbCreate:
+	case v1alpha1.RequestVerbCreate:
 		doc, err := decode(body)
 		obj, ok := doc.(map[string]any)
 		if err != nil || !ok {
 			return rootChange()
 		}
 		set.leaves(nil, obj)
-	case verbPatch:
+	case v1alpha1.RequestVerbPatch:
 		if !staticPatch(&set, pt, body, root) {
 			return rootChange()
 		}
@@ -86,15 +86,15 @@ func Diff(before, after []byte) ([]fieldpath.Change, error) {
 // API server uses, strategic merge patch with root's merge keys.
 func Apply(pt v1alpha1.PatchType, original, patch []byte, root schema.Node) ([]byte, error) {
 	switch pt {
-	case patchJSON:
+	case v1alpha1.PatchTypeJSONPatch:
 		p, err := jsonpatch.DecodePatch(patch)
 		if err != nil {
 			return nil, fmt.Errorf("decode JSON patch: %w", err)
 		}
 		return p.Apply(original)
-	case patchMerge:
+	case v1alpha1.PatchTypeMergePatch:
 		return jsonpatch.MergePatch(original, patch)
-	case patchStrategic:
+	case v1alpha1.PatchTypeStrategicMergePatch:
 		return strategicpatch.StrategicMergePatchUsingLookupPatchMeta(original, patch, root.PatchMeta())
 	}
 	return nil, fmt.Errorf("unsupported patch type %q", pt)

@@ -11,10 +11,16 @@ import (
 	"github.com/morozj01/kaddie/pkg/proposal/schema"
 )
 
-// evaluateStatic is EvaluateStatic: proposal-level findings first, then each
-// request in order, a request's well-formedness first, its body hygiene next
-// and its protections last, in catalogue order.
-func evaluateStatic(p *v1alpha1.SREProposal, schemas schema.Provider) []Finding {
+// EvaluateStatic evaluates a proposal from its own content, with no cluster
+// access (base §6.2): well-formedness, the proposal namespace, body hygiene,
+// and the built-in protections with field rules evaluated on changes.Static.
+// The kaddie-agent-read exception applies only to a patch whose every
+// operation adds, replaces or removes whole rules, each passing the
+// read-role rule (base §5.4.4). No findings means not high risk. Findings are
+// ordered: the proposal's own (NoRequest) first, then by request, and within
+// a request Malformed, body hygiene, then catalogue order. Git proposals get
+// the proposal checks only until pkg/gitproposal's static checks land (T12.2).
+func EvaluateStatic(p *v1alpha1.SREProposal, schemas schema.Provider) []Finding {
 	out := proposalFindings(p)
 	if p.Spec.Type != v1alpha1.ProposalTypeAPI || p.Spec.API == nil {
 		return out
@@ -95,7 +101,7 @@ func matchProtections(in protectionInput) []Finding {
 				targetHit = true
 				continue
 			}
-			if in.t.verb == verbDelete {
+			if in.t.verb == v1alpha1.RequestVerbDelete {
 				continue
 			}
 			ch := in.changed()

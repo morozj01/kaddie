@@ -23,16 +23,16 @@ func staticPatch(s *changeSet, pt v1alpha1.PatchType, body []byte, root schema.N
 		return false
 	}
 	switch pt {
-	case patchJSON:
+	case v1alpha1.PatchTypeJSONPatch:
 		ops, ok := doc.([]any)
 		return ok && s.jsonPatch(ops)
-	case patchMerge:
+	case v1alpha1.PatchTypeMergePatch:
 		obj, ok := doc.(map[string]any)
 		if ok {
 			s.mergePatch(nil, obj)
 		}
 		return ok
-	case patchStrategic:
+	case v1alpha1.PatchTypeStrategicMergePatch:
 		obj, ok := doc.(map[string]any)
 		if ok {
 			s.strategicPatch(nil, obj, root, "")

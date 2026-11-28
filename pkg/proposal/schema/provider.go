@@ -22,20 +22,12 @@ type source interface {
 type provider struct{ src source }
 
 func (p provider) Root(r Resource) Node {
-	n, err := resolve(p.src, r)
+	gvk, err := p.src.kind(r)
 	if err != nil {
 		return Node{}
 	}
+	n, _, _ := kindNode(p.src, schema.GroupVersion{Group: r.Group, Version: r.Version}, gvk)
 	return n
-}
-
-func resolve(src source, r Resource) (Node, error) {
-	gvk, err := src.kind(r)
-	if err != nil {
-		return Node{}, err
-	}
-	n, _, err := kindNode(src, schema.GroupVersion{Group: r.Group, Version: r.Version}, gvk)
-	return n, err
 }
 
 // kindNode returns the root Node of kind gvk in the document of gv, and the

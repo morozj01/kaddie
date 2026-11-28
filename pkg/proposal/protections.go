@@ -2,9 +2,44 @@ package proposal
 
 import (
 	"slices"
+	"strings"
 
 	"github.com/morozj01/kaddie/pkg/proposal/fieldpath"
 )
+
+// ProtectionsVersion names this catalogue. It changes whenever a protection,
+// a reason code or a rendering changes.
+const ProtectionsVersion = "1"
+
+// Protection is one entry of the built-in catalogue (base §6.3).
+type Protection struct {
+	Reason Reason
+	// Group is the catalogue heading: System integrity, Sensitive data, What
+	// code runs and as whom, Deployment mechanism, Previewability.
+	Group string
+	// Summary is the one-line match summary of the policy summary.
+	Summary string
+	// Explanation says what a matching change could do.
+	Explanation string
+	// Rules match when any one of them does.
+	Rules []Rule
+}
+
+// Protections returns a copy of the built-in catalogue, in rendering order.
+func Protections() []Protection {
+	return cloneProtections(catalogue)
+}
+
+// RenderPolicy renders the catalogue as the policy summary's protection
+// lines (harness B.3), "<group>: <summary>", one per protection, in catalogue
+// order, deterministically.
+func RenderPolicy() string {
+	var b strings.Builder
+	for _, p := range catalogue {
+		b.WriteString(p.Group + ": " + p.Summary + "\n")
+	}
+	return b.String()
+}
 
 // Catalogue group headings (base §6.3).
 const (

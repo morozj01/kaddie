@@ -69,7 +69,7 @@ func TestProposal_ExactOnRealDryRuns(t *testing.T) {
 	}{
 		{
 			name: "a replicas change by strategic merge patch",
-			req: patch(types.StrategicMergePatchType, `{"spec":{"replicas":5}}`),
+			req:  patch(types.StrategicMergePatchType, `{"spec":{"replicas":5}}`),
 		},
 		{
 			name:      "an image change by strategic merge patch",

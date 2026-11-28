@@ -13,9 +13,30 @@ import (
 	"github.com/morozj01/kaddie/pkg/proposal/schema"
 )
 
-// evaluateExact is EvaluateExact: findings for each observed request, in
-// request order. Hygiene and well-formedness are static-only and not repeated.
-func evaluateExact(p *v1alpha1.SREProposal, observed []Observed, schemas schema.Provider) []Finding {
+// Observed is what an executor saw for one request during preview.
+type Observed struct {
+	// Request is the index in spec.api.requests.
+	Request int `json:"request"`
+	// Live is the object before the request; empty for create.
+	Live json.RawMessage `json:"live,omitempty"`
+	// DryRun is the object the server-side dry run returned.
+	DryRun json.RawMessage `json:"dryRun"`
+}
+
+// EvaluateExact evaluates the built-in protections against what each
+// observed request really changes (base §4.2.1 item 2). For a patch, the
+// request's own changes are changes.Diff(Live, Apply(Live, patch)) and
+// admission's are the rest of changes.Diff(Live, DryRun); a finding names
+// SourceRequest when an own change matches, otherwise SourceAdmission. For
+// create, own changes are the body's fields and admission's are body fields
+// whose dry-run value differs, so server-applied defaults don't count. The
+// kaddie-agent-read exception holds only when the DryRun role passes the
+// read-role rule. Requests without an Observed entry, and entries for
+// requests the proposal doesn't have, are skipped. Findings are in request
+// order, and well-formedness and body hygiene are left to EvaluateStatic.
+// Target-rule findings carry SourceRequest. If the observed objects can't be
+// compared, the request's static changes stand in as its own.
+func EvaluateExact(p *v1alpha1.SREProposal, observed []Observed, schemas schema.Provider) []Finding {
 	if p.Spec.API == nil {
 		return nil
 	}
@@ -72,9 +93,9 @@ func exactChanges(req v1alpha1.RequestFields, t target, obs Observed, schemas sc
 // fills in is a default, which admission can't be told from, and is ignored.
 func observedChanges(req v1alpha1.RequestFields, root schema.Node, obs Observed) (own, admission []fieldpath.Change, ok bool) {
 	switch req.Verb {
-	case verbDelete:
+	case v1alpha1.RequestVerbDelete:
 		return nil, nil, true
-	case verbCreate:
+	case v1alpha1.RequestVerbCreate:
 		own = changes.Static(req.Verb, req.PatchType, []byte(req.Body), root)
 		diff, err := changes.Diff([]byte(req.Body), obs.DryRun)
 		if err != nil {
@@ -90,7 +111,7 @@ func observedChanges(req v1alpha1.RequestFields, root schema.Node, obs Observed)
 			}
 		}
 		return own, admission, true
-	case verbPatch:
+	case v1alpha1.RequestVerbPatch:
 		if applied, err := changes.Apply(req.PatchType, obs.Live, []byte(req.Body), root); err == nil {
 			own, err1 := changes.Diff(obs.Live, applied)
 			admission, err2 := changes.Diff(applied, obs.DryRun)

@@ -9,7 +9,7 @@ import (
 // tgt is a request target for the field tests; names and namespaces are
 // already the candidate lists targetOf would produce.
 func tgt(group, resource, sub, verb string, namespaces, names []string) target {
-	return target{group: group, resource: resource, subresource: sub, verb: verb, namespaces: namespaces, names: names}
+	return target{group: group, resource: resource, subresource: sub, verb: v1alpha1.RequestVerb(verb), namespaces: namespaces, names: names}
 }
 
 // podsCreate is the base target the field tests vary one field at a time.

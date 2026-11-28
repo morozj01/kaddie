@@ -14,9 +14,9 @@ import (
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
-// IndexFile names the file Record writes beside the documents: which kind
+// indexFile names the file Record writes beside the documents: which kind
 // each recorded resource and subresource carries.
-const IndexFile = "index.json"
+const indexFile = "index.json"
 
 // kept lists the extensions a recorded schema keeps. Everything else the
 // field analysis never reads is dropped, descriptions first.
@@ -61,7 +61,7 @@ func Record(d discovery.DiscoveryInterface, resources []Resource) (map[string][]
 	if err != nil {
 		return nil, err
 	}
-	files[IndexFile] = b
+	files[indexFile] = b
 
 	for gv, names := range roots {
 		doc, err := src.document(gv)

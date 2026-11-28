@@ -10,7 +10,7 @@ import (
 	"k8s.io/kube-openapi/pkg/spec3"
 )
 
-// openapi holds what hack/vendor-openapi recorded: IndexFile and one pruned
+// openapi holds what hack/vendor-openapi recorded: indexFile and one pruned
 // document per group version.
 //
 //go:embed openapi/*.json
@@ -81,7 +81,7 @@ func (v *vendoredSource) document(gv schema.GroupVersion) (*spec3.OpenAPI, error
 // mustIndex reads the index of the embedded files. The files are part of the
 // binary, so a failure is a corrupt build, not an input.
 func mustIndex(files embed.FS) []indexEntry {
-	b, err := files.ReadFile("openapi/" + IndexFile)
+	b, err := files.ReadFile("openapi/" + indexFile)
 	if err != nil {
 		panic(err)
 	}

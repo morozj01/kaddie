@@ -14,15 +14,33 @@ const (
 	expiredExplanation         = "The proposal has expired and can't be acted on. Ask the agent for a new one."
 )
 
+// RefusalReason is a stable code for a failed acting precondition.
+type RefusalReason string
+
 const (
-	approvalDismissed v1alpha1.ApprovalPhase = "Dismissed"
-	prMerged          v1alpha1.PRState       = "Merged"
-	prClosed          v1alpha1.PRState       = "Closed"
+	// Halted: SREConfig/default is missing, unreadable, or in mode Halted.
+	Halted RefusalReason = "Halted"
+	// ExecutionPaused: mode is ExecutionPaused.
+	ExecutionPaused RefusalReason = "ExecutionPaused"
+	// NotOpen: the proposal already has an outcome.
+	NotOpen RefusalReason = "NotOpen"
+	// Expired: an expiry is configured and has passed.
+	Expired RefusalReason = "Expired"
 )
 
-// canAct is CanAct. Any mode other than the three known ones fails closed as
-// Halted, since an unrecognised mode can't be read as permission.
-func canAct(cfg *v1alpha1.SREConfig, p *v1alpha1.SREProposal, expiry time.Duration, now time.Time) []Refusal {
+// Refusal is one failed acting precondition.
+type Refusal struct {
+	Reason      RefusalReason
+	Explanation string
+}
+
+// CanAct reports every acting precondition the proposal fails (base §7.2):
+// mode Enabled (a nil cfg is a missing SREConfig, so Halted), open, and
+// unexpired, where expiry is proposals.expirySeconds and zero never expires.
+// An empty result means a human may act. Risk findings are deliberately not
+// an input: they change how a proposal is shown, never whether it can be
+// acted on.
+func CanAct(cfg *v1alpha1.SREConfig, p *v1alpha1.SREProposal, expiry time.Duration, now time.Time) []Refusal {
 	var out []Refusal
 	switch {
 	case cfg == nil:
@@ -31,6 +49,8 @@ func canAct(cfg *v1alpha1.SREConfig, p *v1alpha1.SREProposal, expiry time.Durati
 	case cfg.Spec.Mode == v1alpha1.ModeExecutionPaused:
 		out = append(out, Refusal{Reason: ExecutionPaused, Explanation: executionPausedExplanation})
 	default:
+		// Halted, and any mode not recognised, which can't be read as
+		// permission.
 		out = append(out, Refusal{Reason: Halted, Explanation: haltedExplanation})
 	}
 	if !isOpen(p) {
@@ -50,9 +70,9 @@ func isOpen(p *v1alpha1.SREProposal) bool {
 	st := p.Status
 	switch p.Spec.Type {
 	case v1alpha1.ProposalTypeGit:
-		return (st.Approval == nil || st.Approval.Phase != approvalDismissed) &&
+		return (st.Approval == nil || st.Approval.Phase != v1alpha1.ApprovalPhaseDismissed) &&
 			st.PushFailure == nil &&
-			(st.PR == nil || (st.PR.State != prMerged && st.PR.State != prClosed))
+			(st.PR == nil || (st.PR.State != v1alpha1.PRStateMerged && st.PR.State != v1alpha1.PRStateClosed))
 	default:
 		return st.Execution == nil || st.Execution.Phase == ""
 	}

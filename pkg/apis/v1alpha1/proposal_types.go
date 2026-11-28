@@ -92,9 +92,21 @@ type APIProposal struct {
 // +kubebuilder:validation:Enum=create;patch;delete
 type RequestVerb string
 
+const (
+	RequestVerbCreate RequestVerb = "create"
+	RequestVerbPatch  RequestVerb = "patch"
+	RequestVerbDelete RequestVerb = "delete"
+)
+
 // PatchType is one of the three patch formats the protections can analyse.
 // +kubebuilder:validation:Enum=application/json-patch+json;application/merge-patch+json;application/strategic-merge-patch+json
 type PatchType string
+
+const (
+	PatchTypeJSONPatch           PatchType = "application/json-patch+json"
+	PatchTypeMergePatch          PatchType = "application/merge-patch+json"
+	PatchTypeStrategicMergePatch PatchType = "application/strategic-merge-patch+json"
+)
 
 // RequestFields are the fields of one Kubernetes API request. They are shared
 // by spec.api.requests and status.render.requests so both have one shape.
@@ -334,6 +346,11 @@ type RenderTarget struct {
 // +kubebuilder:validation:Enum=ReadyForPR;Dismissed
 type ApprovalPhase string
 
+const (
+	ApprovalPhaseReadyForPR ApprovalPhase = "ReadyForPR"
+	ApprovalPhaseDismissed  ApprovalPhase = "Dismissed"
+)
+
 // ApprovalStatus is an operator's decision. kaddie-ui never rewrites it once set.
 type ApprovalStatus struct {
 	// Phase is ReadyForPR or Dismissed.
@@ -354,6 +371,12 @@ type ApprovalStatus struct {
 // PRState is the state of a pull request.
 // +kubebuilder:validation:Enum=Open;Merged;Closed
 type PRState string
+
+const (
+	PRStateOpen   PRState = "Open"
+	PRStateMerged PRState = "Merged"
+	PRStateClosed PRState = "Closed"
+)
 
 // PRStatus is the pull request kaddie-git-writer opened.
 type PRStatus struct {

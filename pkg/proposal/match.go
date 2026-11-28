@@ -40,7 +40,8 @@ type Rule struct {
 // are pattern lists: every value the request could act on, so no spelling of
 // a request evades a rule. A trailing * marks a generateName prefix.
 type target struct {
-	group, resource, subresource, verb string
+	group, resource, subresource string
+	verb                         v1alpha1.RequestVerb
 	// namespaces holds the request's namespace and, for create, the body's
 	// metadata.namespace; for the namespaces resource, the names below.
 	namespaces []string
@@ -61,7 +62,7 @@ func targetOf(req v1alpha1.RequestFields) (target, error) {
 		group:       group,
 		resource:    req.Resource,
 		subresource: req.Subresource,
-		verb:        string(req.Verb),
+		verb:        req.Verb,
 	}
 	var names, namespaces []string
 	add := func(list *[]string, v string) {
@@ -71,7 +72,7 @@ func targetOf(req v1alpha1.RequestFields) (target, error) {
 	}
 	add(&names, req.Name)
 	add(&namespaces, req.Namespace)
-	if t.verb == "create" {
+	if t.verb == v1alpha1.RequestVerbCreate {
 		var body map[string]any
 		if json.Unmarshal([]byte(req.Body), &body) == nil {
 			meta, _ := body["metadata"].(map[string]any)
@@ -108,7 +109,7 @@ func groupOf(apiVersion string) (string, error) {
 func (r Rule) matchesTarget(t target) bool {
 	return listed(r.APIGroups, func(g string) bool { return g == "*" || g == t.group }) &&
 		listed(r.Resources, func(res string) bool { return resourceMatches(res, t) }) &&
-		listed(r.Verbs, func(v string) bool { return v == "*" || v == t.verb }) &&
+		listed(r.Verbs, func(v string) bool { return v == "*" || v == string(t.verb) }) &&
 		overlapsAny(r.Namespaces, t.namespaces) &&
 		overlapsAny(r.Names, t.names)
 }

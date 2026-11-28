@@ -45,7 +45,7 @@ func applyException(reason Reason, t target, readRolePasses func() bool) (Reason
 // cluster-scoped role has no use for.
 func targetsAgentReadRole(t target) bool {
 	return t.group == rbacGroup && t.resource == "clusterroles" && t.subresource == "" &&
-		t.verb == verbPatch && len(t.namespaces) == 0 &&
+		t.verb == v1alpha1.RequestVerbPatch && len(t.namespaces) == 0 &&
 		len(t.names) == 1 && t.names[0] == agentReadRole
 }
 
@@ -153,13 +153,13 @@ var ruleIndexPath = regexp.MustCompile(`^/rules/(0|[1-9][0-9]*)$`)
 // elsewhere or lose the label that others select by.
 func patchPassesReadRole(pt v1alpha1.PatchType, body string) bool {
 	switch pt {
-	case patchJSON:
+	case v1alpha1.PatchTypeJSONPatch:
 		var ops []map[string]json.RawMessage
 		if json.Unmarshal([]byte(body), &ops) != nil || ops == nil {
 			return false
 		}
 		return !slices.ContainsFunc(ops, func(op map[string]json.RawMessage) bool { return !jsonPatchOpPasses(op) })
-	case patchMerge, patchStrategic:
+	case v1alpha1.PatchTypeMergePatch, v1alpha1.PatchTypeStrategicMergePatch:
 		var doc map[string]json.RawMessage
 		if json.Unmarshal([]byte(body), &doc) != nil || len(doc) != 1 {
 			return false

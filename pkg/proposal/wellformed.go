@@ -73,16 +73,16 @@ func proposalFindings(p *v1alpha1.SREProposal) []Finding {
 func requestMalformed(index int, req v1alpha1.RequestFields) []Finding {
 	var out []Finding
 	malformed := func(rule string) { out = append(out, malformedFinding(index, rule)) }
-	if !slices.Contains([]v1alpha1.RequestVerb{verbCreate, verbPatch, verbDelete}, req.Verb) {
+	if !slices.Contains([]v1alpha1.RequestVerb{v1alpha1.RequestVerbCreate, v1alpha1.RequestVerbPatch, v1alpha1.RequestVerbDelete}, req.Verb) {
 		malformed("the verb is not create, patch or delete")
 	}
-	if (req.Verb == verbPatch || req.Verb == verbDelete) && req.Name == "" {
+	if (req.Verb == v1alpha1.RequestVerbPatch || req.Verb == v1alpha1.RequestVerbDelete) && req.Name == "" {
 		malformed("patch and delete need a name")
 	}
-	if req.Verb == verbPatch && !slices.Contains([]v1alpha1.PatchType{patchJSON, patchMerge, patchStrategic}, req.PatchType) {
+	if req.Verb == v1alpha1.RequestVerbPatch && !slices.Contains([]v1alpha1.PatchType{v1alpha1.PatchTypeJSONPatch, v1alpha1.PatchTypeMergePatch, v1alpha1.PatchTypeStrategicMergePatch}, req.PatchType) {
 		malformed("patch needs a patch type of JSON Patch, JSON merge patch or strategic merge patch")
 	}
-	if (req.Verb == verbCreate || req.Verb == verbPatch) && req.Body == "" {
+	if (req.Verb == v1alpha1.RequestVerbCreate || req.Verb == v1alpha1.RequestVerbPatch) && req.Body == "" {
 		malformed("create and patch need a body")
 	}
 	if len(req.Body) > maxBodyBytes {

@@ -10,18 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/morozj01/kaddie/pkg/apis/v1alpha1"
 	"github.com/morozj01/kaddie/pkg/proposal/fieldpath"
-)
-
-const (
-	verbCreate v1alpha1.RequestVerb = "create"
-	verbPatch  v1alpha1.RequestVerb = "patch"
-	verbDelete v1alpha1.RequestVerb = "delete"
-
-	patchJSON      v1alpha1.PatchType = "application/json-patch+json"
-	patchMerge     v1alpha1.PatchType = "application/merge-patch+json"
-	patchStrategic v1alpha1.PatchType = "application/strategic-merge-patch+json"
 )
 
 // changeSet collects changes in the order they are found, one per path. A

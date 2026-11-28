@@ -8,17 +8,6 @@ import (
 	"github.com/morozj01/kaddie/pkg/apis/v1alpha1"
 )
 
-// Verbs and patch types the static checks name.
-const (
-	verbCreate = "create"
-	verbPatch  = "patch"
-	verbDelete = "delete"
-
-	patchJSON      v1alpha1.PatchType = "application/json-patch+json"
-	patchMerge     v1alpha1.PatchType = "application/merge-patch+json"
-	patchStrategic v1alpha1.PatchType = "application/strategic-merge-patch+json"
-)
-
 // redactedMarker starts every placeholder the redactor writes in place of a
 // secret value.
 const redactedMarker = "<redacted:"
@@ -43,7 +32,7 @@ func hygieneFindings(index int, req v1alpha1.RequestFields) []Finding {
 	}
 	// Only create and patch need a body. A verb Malformed already reports
 	// isn't held to one either.
-	bodyNeeded := req.Verb == verbCreate || req.Verb == verbPatch
+	bodyNeeded := req.Verb == v1alpha1.RequestVerbCreate || req.Verb == v1alpha1.RequestVerbPatch
 	if valid := (decoded && bodyShapeOK(req, doc)) || (req.Body == "" && !bodyNeeded); !valid {
 		add(InvalidJSON, invalidJSONExplanation)
 	}
@@ -75,13 +64,13 @@ func isInvisible(r rune) bool {
 func bodyShapeOK(req v1alpha1.RequestFields, doc any) bool {
 	_, isObject := doc.(map[string]any)
 	switch req.Verb {
-	case verbCreate, verbDelete:
+	case v1alpha1.RequestVerbCreate, v1alpha1.RequestVerbDelete:
 		return isObject
-	case verbPatch:
+	case v1alpha1.RequestVerbPatch:
 		switch req.PatchType {
-		case patchMerge, patchStrategic:
+		case v1alpha1.PatchTypeMergePatch, v1alpha1.PatchTypeStrategicMergePatch:
 			return isObject
-		case patchJSON:
+		case v1alpha1.PatchTypeJSONPatch:
 			return jsonPatchOK(doc)
 		}
 	}
