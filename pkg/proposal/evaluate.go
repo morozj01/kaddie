@@ -2,6 +2,7 @@ package proposal
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/morozj01/kaddie/pkg/apis/v1alpha1"
@@ -28,14 +29,18 @@ type Protection struct {
 
 // Protections returns a copy of the built-in catalogue, in rendering order.
 func Protections() []Protection {
-	panic("unimplemented")
+	return cloneProtections(catalogue)
 }
 
 // RenderPolicy renders the catalogue as the policy summary's protection
 // lines (harness B.3), "<group>: <summary>", one per protection, in catalogue
 // order, deterministically.
 func RenderPolicy() string {
-	panic("unimplemented")
+	var b strings.Builder
+	for _, p := range catalogue {
+		b.WriteString(p.Group + ": " + p.Summary + "\n")
+	}
+	return b.String()
 }
 
 // EvaluateStatic evaluates a proposal from its own content, with no cluster
@@ -44,10 +49,11 @@ func RenderPolicy() string {
 // The kaddie-agent-read exception applies only to a patch whose every
 // operation adds, replaces or removes whole rules, each passing the
 // read-role rule (base §5.4.4). No findings means not high risk. Findings are
-// ordered by request, then catalogue order. Git proposals get the proposal
-// checks only until pkg/gitproposal's static checks land (T12.2).
+// ordered: the proposal's own (NoRequest) first, then by request, and within
+// a request Malformed, body hygiene, then catalogue order. Git proposals get
+// the proposal checks only until pkg/gitproposal's static checks land (T12.2).
 func EvaluateStatic(p *v1alpha1.SREProposal, schemas schema.Provider) []Finding {
-	panic("unimplemented")
+	return evaluateStatic(p, schemas)
 }
 
 // Observed is what an executor saw for one request during preview.
