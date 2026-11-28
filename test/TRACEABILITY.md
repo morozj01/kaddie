@@ -16,7 +16,7 @@ Rules the checker enforces:
   `TestCRD_T8_...`) is listed in that ID's row.
 - An ID claimed by a task in "Tasks done" is not `unclaimed`.
 
-Tasks done: T0.1, T0.2, T0.3, T1.1, T1.2, T1.3, T1.4, T1.5, T1.6
+Tasks done: T0.1, T0.2, T0.3, T1.1, T1.2, T1.3, T1.4, T1.5, T1.6, T2.1, T2.2, T2.3, T2.4, T2.5
 
 | ID | Spec | Summary | Planned task(s) | Release | Implemented by |
 | --- | --- | --- | --- | --- | --- |
