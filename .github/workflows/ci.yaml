@@ -1,0 +1,86 @@
+name: ci
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HELM_VERSION: v4.3.2
+  KIND_VERSION: v0.33.0
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - run: make lint
+      - name: Generated code is up to date
+        run: make generate && git diff --exit-code
+
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - run: make test PKG="$(go list ./... | grep -v /test/chart | tr '\n' ' ')"
+      - run: make traceability
+      - run: go build ./cmd/...
+
+  envtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - run: make test-envtest
+
+  chart-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+      - run: make chart-test
+
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        k8s: ["1.28", "latest"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+      - name: Install kind
+        run: go install sigs.k8s.io/kind@${KIND_VERSION} && echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - run: make kind-up K8S=${{ matrix.k8s }}
+      - run: make e2e
+      - name: Collect the audit log
+        if: failure()
+        run: docker exec kaddie-e2e-control-plane cat /var/log/kubernetes/audit/audit.log > audit.log || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-${{ matrix.k8s }}-audit
+          path: audit.log

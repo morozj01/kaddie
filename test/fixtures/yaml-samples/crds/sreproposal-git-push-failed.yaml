@@ -1,0 +1,37 @@
+apiVersion: kaddie.org/v1alpha1
+kind: SREProposal
+metadata:
+  name: proposal-q8w2e
+  namespace: kaddie-system
+spec:
+  type: Git
+  git:
+    repository: platform-config
+    baseSHA: 3f9c2e1b7a4d6c8e0f2a4b6c8d0e2f4a6b8c0d2e
+    edits:
+      - path: apps/payments/values-prod.yaml
+        operation: Edit
+        oldText: "  replicas: 3\n"
+        newText: "  replicas: 6\n"
+  justification: "Scale out ahead of the batch window."
+  sessionId: ses_01JCXA1B2C3D4E5F6G7H8J9KMP
+  runId: run_01JCXA2B3C4D5E6F7G8H9J0K1LQ
+status:
+  render:
+    phase: Rendered
+    headTreeSHA: 6c1f4e7a0d3b6e9c2f5a8d1b4e7c0a3f6d9b2e5c
+    rendererVersion: "1.4.0 (helm 3.16.2, kustomize 5.4.3)"
+    renderedAt: "2026-11-11T10:00:40Z"
+    targets:
+      - { name: payments-prod, tool: Helm, namespace: payments, rendered: true, requestIndexes: [0] }
+    requests:
+      - { verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"spec":{"replicas":6}}' }
+  approval:
+    phase: ReadyForPR
+    actedBy: alice@example.com
+    actedAt: "2026-11-11T10:03:02Z"
+    headTreeSHA: 6c1f4e7a0d3b6e9c2f5a8d1b4e7c0a3f6d9b2e5c
+  pushFailure:
+    reason: TreeMismatch
+    details: []
+    at: "2026-11-11T10:04:09Z"

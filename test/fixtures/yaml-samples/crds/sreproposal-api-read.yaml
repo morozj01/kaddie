@@ -1,0 +1,21 @@
+apiVersion: kaddie.org/v1alpha1
+kind: SREProposal
+metadata:
+  generateName: proposal-
+  namespace: kaddie-system
+spec:
+  type: Api
+  api:
+    requests:
+      - verb: patch
+        apiVersion: rbac.authorization.k8s.io/v1
+        resource: clusterroles
+        namespace: ""
+        name: kaddie-agent-read
+        patchType: application/json-patch+json
+        body: '[{"op":"add","path":"/rules/-","value":{"apiGroups":["cert-manager.io"],"resources":["certificates"],"verbs":["get","list","watch"]}}]'
+  justification: "The certificate behind the payments ingress may have expired; reading Certificates would confirm it."
+  evidence:
+    - { apiGroup: networking.k8s.io, kind: Ingress, namespace: payments, name: api }
+  sessionId: ses_01JCX3M8Q4N6V2K9T7B5R1D0FA
+  runId: run_01JCX3P2H8W4E6Y1U3I5O7L9ZK

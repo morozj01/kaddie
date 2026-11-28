@@ -1,0 +1,12 @@
+# The hard storage bound on stored proposals (base §6.1). It counts every
+# stored proposal, open and closed within retention.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: kaddie-proposals
+  namespace: {{ include "kaddie.namespace" . }}
+  labels:
+    {{- include "kaddie.labels" . | nindent 4 }}
+spec:
+  hard:
+    count/sreproposals.kaddie.org: {{ .Values.proposals.quota | quote }}

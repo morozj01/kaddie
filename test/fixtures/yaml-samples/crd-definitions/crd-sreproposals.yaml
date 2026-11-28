@@ -1,0 +1,210 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: sreproposals.kaddie.org
+spec:
+  group: kaddie.org
+  scope: Namespaced
+  names:
+    kind: SREProposal
+    listKind: SREProposalList
+    plural: sreproposals
+    singular: sreproposal
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - { name: Type, type: string, jsonPath: .spec.type }
+        - { name: Phase, type: string, jsonPath: .status.execution.phase }
+        - { name: Render, type: string, jsonPath: .status.render.phase }
+        - { name: Approval, type: string, jsonPath: .status.approval.phase }
+        - { name: PR, type: string, jsonPath: .status.pr.state }
+        - { name: Age, type: date, jsonPath: .metadata.creationTimestamp }
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            apiVersion: { type: string }
+            kind: { type: string }
+            metadata: { type: object }
+            spec:
+              type: object
+              required: [type, justification]
+              x-kubernetes-validations:
+                - rule: "self.type == 'Api' ? (has(self.api) && !has(self.git)) : (has(self.git) && !has(self.api))"
+                  message: exactly the block matching spec.type must be set
+                - rule: "self == oldSelf"
+                  message: spec is immutable
+              properties:
+                type: { type: string, enum: [Api, Git] }
+                api:
+                  type: object
+                  required: [requests]
+                  properties:
+                    requests:
+                      type: array
+                      minItems: 1
+                      maxItems: 20
+                      items:
+                        type: object
+                        required: [verb, apiVersion, resource]
+                        x-kubernetes-validations:
+                          - rule: "self.verb == 'create' || (has(self.name) && self.name != '')"
+                            message: name is required for patch and delete
+                          - rule: "self.verb != 'patch' || (has(self.patchType) && self.patchType != '')"
+                            message: patchType is required for patch
+                          - rule: "self.verb == 'delete' || (has(self.body) && self.body != '')"
+                            message: body is required for create and patch
+                        properties:
+                          verb: { type: string, enum: [create, patch, delete] }
+                          apiVersion: { type: string, maxLength: 253 }
+                          resource: { type: string, maxLength: 253 }
+                          subresource: { type: string, maxLength: 63 }
+                          namespace: { type: string, maxLength: 63 }
+                          name: { type: string, maxLength: 253 }
+                          patchType: { type: string, enum: [application/json-patch+json, application/merge-patch+json, application/strategic-merge-patch+json] }
+                          body: { type: string, maxLength: 65536 }
+                git:
+                  type: object
+                  required: [repository, baseSHA, edits]
+                  properties:
+                    repository: { type: string, maxLength: 63 }
+                    baseSHA: { type: string, pattern: "^[0-9a-f]{40}([0-9a-f]{24})?$" }
+                    edits:
+                      type: array
+                      minItems: 1
+                      maxItems: 20
+                      x-kubernetes-validations:
+                        - rule: "self.all(e, self.filter(f, f.path == e.path).size() == 1)"
+                          message: no two edits may target the same path
+                      items:
+                        type: object
+                        required: [path, operation]
+                        x-kubernetes-validations:
+                          - rule: "self.operation != 'Edit' || (has(self.oldText) && has(self.newText))"
+                            message: Edit requires oldText and newText
+                          - rule: "self.operation != 'Create' || has(self.content)"
+                            message: Create requires content
+                          - rule: "self.operation == 'Edit' ? !has(self.content) : (self.operation == 'Create' ? (!has(self.oldText) && !has(self.newText)) : (!has(self.content) && !has(self.oldText) && !has(self.newText)))"
+                            message: an edit carries only the fields its operation uses
+                          - rule: "!self.path.startsWith('/') && !self.path.contains('\\\\') && !self.path.matches('[[:cntrl:]]') && !self.path.split('/').exists(s, s in ['', '.', '..'])"
+                            message: path must be relative and /-separated, with no empty, . or .. segments, backslashes or control characters
+                        properties:
+                          path: { type: string, maxLength: 1024 }
+                          operation: { type: string, enum: [Create, Edit, Delete] }
+                          oldText: { type: string, maxLength: 65536 }
+                          newText: { type: string, maxLength: 65536 }
+                          content: { type: string, maxLength: 65536 }
+                justification: { type: string, maxLength: 4000 }
+                riskExplanation: { type: string, maxLength: 4000 }
+                evidence:
+                  type: array
+                  maxItems: 20
+                  items:
+                    type: object
+                    required: [kind, name]
+                    properties:
+                      apiGroup: { type: string }
+                      kind: { type: string }
+                      namespace: { type: string }
+                      name: { type: string }
+                sessionId: { type: string, maxLength: 64 }
+                runId: { type: string, maxLength: 64 }
+            status:
+              type: object
+              properties:
+                execution:
+                  type: object
+                  properties:
+                    phase: { type: string, enum: [Executed, PartiallyExecuted, Failed, Dismissed] }
+                    actedBy: { type: string }
+                    actedAt: { type: string, format: date-time }
+                    results:
+                      type: array
+                      maxItems: 20
+                      items:
+                        type: object
+                        properties:
+                          index: { type: integer, minimum: 0 }
+                          outcome: { type: string, enum: [Succeeded, Failed, Skipped] }
+                          message: { type: string, maxLength: 1024 }
+                render:
+                  type: object
+                  properties:
+                    phase: { type: string, enum: [Rendered, Unrenderable, Failed] }
+                    reason: { type: string, maxLength: 63 }
+                    headTreeSHA: { type: string, maxLength: 64 }
+                    rendererVersion: { type: string, maxLength: 63 }
+                    renderedAt: { type: string, format: date-time }
+                    targets:
+                      type: array
+                      maxItems: 50
+                      items:
+                        type: object
+                        properties:
+                          name: { type: string }
+                          tool: { type: string, enum: [Plain, Helm, Kustomize] }
+                          namespace: { type: string }
+                          rendered: { type: boolean }
+                          reason: { type: string }
+                          requestIndexes: { type: array, items: { type: integer, minimum: 0 } }
+                    requests:
+                      type: array
+                      maxItems: 200
+                      items:
+                        type: object
+                        required: [verb, apiVersion, resource]
+                        properties:
+                          verb: { type: string, enum: [create, patch, delete] }
+                          apiVersion: { type: string, maxLength: 253 }
+                          resource: { type: string, maxLength: 253 }
+                          subresource: { type: string, maxLength: 63 }
+                          namespace: { type: string, maxLength: 63 }
+                          name: { type: string, maxLength: 253 }
+                          patchType: { type: string, enum: [application/json-patch+json, application/merge-patch+json, application/strategic-merge-patch+json] }
+                          body: { type: string, maxLength: 65536 }
+                approval:
+                  type: object
+                  required: [phase, actedBy]
+                  properties:
+                    phase: { type: string, enum: [ReadyForPR, Dismissed] }
+                    actedBy: { type: string }
+                    actedAt: { type: string, format: date-time }
+                    headTreeSHA: { type: string, maxLength: 64 }
+                pr:
+                  type: object
+                  properties:
+                    url: { type: string }
+                    number: { type: integer }
+                    branch: { type: string }
+                    headSHA: { type: string }
+                    baseSHA: { type: string }
+                    headTreeSHA: { type: string }
+                    state: { type: string, enum: [Open, Merged, Closed] }
+                    closedReason: { type: string }
+                    mergeCommitSHA: { type: string }
+                    mergedBy: { type: string }
+                    approvedBy: { type: array, items: { type: string } }
+                    targets:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          name: { type: string }
+                          namespace: { type: string }
+                pushFailure:
+                  type: object
+                  properties:
+                    reason: { type: string }
+                    details:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          edit: { type: integer, minimum: 0 }
+                          check: { type: string }
+                    at: { type: string, format: date-time }

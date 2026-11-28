@@ -1,0 +1,60 @@
+{{- /*
+Every service identity's permissions come from exactly these bindings
+(Architecture §6.2). kaddie-agent and kaddie-ui have none.
+*/}}
+{{- define "kaddie.saSubject" -}}
+- kind: ServiceAccount
+  name: {{ .name }}
+  namespace: {{ .namespace }}
+{{- end -}}
+{{- $ns := include "kaddie.namespace" . }}
+# Shared by kaddie-tools (reads for the agent) and kaddie-sessions (trigger
+# watches), so a trigger never sees more than the agent (H11). Deleting it is
+# break-glass step L3.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kaddie-agent-read
+  labels:
+    {{- include "kaddie.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kaddie-agent-read
+subjects:
+  {{- include "kaddie.saSubject" (dict "name" "kaddie-tools" "namespace" $ns) | nindent 2 }}
+  {{- include "kaddie.saSubject" (dict "name" "kaddie-sessions" "namespace" $ns) | nindent 2 }}
+---
+# Deleting this binding is break-glass step L2: proposing stops, reads go on.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kaddie-agent-propose
+  namespace: {{ $ns }}
+  labels:
+    {{- include "kaddie.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kaddie-agent-propose
+subjects:
+  {{- include "kaddie.saSubject" (dict "name" "kaddie-tools" "namespace" $ns) | nindent 2 }}
+{{- $own := list "kaddie-sessions" "kaddie-tools" }}
+{{- if .Values.gitops.enabled }}
+{{- $own = concat $own (list "kaddie-git-writer" "kaddie-renderer") }}
+{{- end }}
+{{- range $name := $own }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "kaddie.labels" $ | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $name }}
+subjects:
+  {{- include "kaddie.saSubject" (dict "name" $name "namespace" $ns) | nindent 2 }}
+{{- end }}

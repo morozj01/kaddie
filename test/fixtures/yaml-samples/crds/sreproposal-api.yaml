@@ -1,0 +1,39 @@
+apiVersion: kaddie.org/v1alpha1
+kind: SREProposal
+metadata:
+  name: proposal-x7k2p
+  generateName: proposal-
+  namespace: kaddie-system
+  creationTimestamp: "2026-11-11T09:00:00Z"
+spec:
+  type: Api
+  api:
+    requests:
+      - verb: patch
+        apiVersion: apps/v1
+        resource: deployments
+        subresource: ""
+        namespace: payments
+        name: api
+        patchType: application/strategic-merge-patch+json
+        body: '{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"2026-11-11T09:00:00Z"}}}}}'
+      - verb: patch
+        apiVersion: autoscaling/v2
+        resource: horizontalpodautoscalers
+        namespace: payments
+        name: api
+        patchType: application/merge-patch+json
+        body: '{"spec":{"maxReplicas":12}}'
+  justification: "Pods crash after the 08:55 config change; a rollout restart picks up the fixed ConfigMap and HPA headroom avoids saturation."
+  evidence:
+    - { apiGroup: "", kind: Pod, namespace: payments, name: api-7f9c-abc }
+  sessionId: ses_01JCX3M8Q4N6V2K9T7B5R1D0FA
+  runId: run_01JCX3P2H8W4E6Y1U3I5O7L9ZK
+status:
+  execution:
+    phase: Executed
+    actedBy: alice@example.com
+    actedAt: "2026-11-11T09:12:41Z"
+    results:
+      - { index: 0, outcome: Succeeded, message: "deployment.apps/api patched" }
+      - { index: 1, outcome: Succeeded, message: "horizontalpodautoscaler/api patched" }

@@ -1,0 +1,44 @@
+# kind cluster for e2e tests on the latest stable Kubernetes. The mock OIDC
+# issuer is trusted through structured authentication config (GA in 1.34);
+# kubeadm v1beta4 takes extraArgs as a list. ${GEN_DIR} is filled in by
+# kind-up.sh.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.37.0
+    extraMounts:
+      - hostPath: ${GEN_DIR}
+        containerPath: /etc/kaddie-test
+        readOnly: true
+    kubeadmConfigPatches:
+      - |
+        apiVersion: kubeadm.k8s.io/v1beta4
+        kind: ClusterConfiguration
+        # The quota controller recomputes a quota whose resource type it
+        # discovered late only on this resync (default 5m), so a fresh
+        # cluster refuses proposals that long. 30s keeps e2e setup short.
+        controllerManager:
+          extraArgs:
+            - name: resource-quota-sync-period
+              value: 30s
+        apiServer:
+          extraArgs:
+            - name: authentication-config
+              value: /etc/kaddie-test/auth-config.yaml
+            - name: audit-policy-file
+              value: /etc/kaddie-test/audit-policy.yaml
+            - name: audit-log-path
+              value: /var/log/kubernetes/audit/audit.log
+            - name: audit-log-maxsize
+              value: "200"
+          extraVolumes:
+            - name: kaddie-test
+              hostPath: /etc/kaddie-test
+              mountPath: /etc/kaddie-test
+              readOnly: true
+              pathType: Directory
+            - name: audit-log
+              hostPath: /var/log/kubernetes/audit
+              mountPath: /var/log/kubernetes/audit
+              pathType: DirectoryOrCreate

@@ -1,0 +1,12 @@
+apiVersion: kaddie.org/v1alpha1
+kind: SRETrigger
+metadata:
+  name: daily-digest
+spec:
+  mode: Shadow
+  schedule:
+    cron: "0 8 * * 1-5"
+    timezone: UTC
+  session:
+    goal: "Summarize the health of the cluster since the last digest. Report only; propose nothing."
+    resume: None

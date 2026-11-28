@@ -1,0 +1,18 @@
+apiVersion: kaddie.org/v1alpha1
+kind: SREProposal
+metadata:
+  generateName: proposal-
+  namespace: kaddie-system
+spec:
+  type: Git
+  git:
+    repository: kaddie-install
+    baseSHA: 1d4a7c0f3e6b9d2a5c8f1e4b7d0a3c6f9e2b5d8a
+    edits:
+      - path: kaddie/agent-read-extra.yaml
+        operation: Edit
+        oldText: "- { group: monitoring.coreos.com, resource: servicemonitors }\n"
+        newText: "- { group: monitoring.coreos.com, resource: servicemonitors }\n- { group: cert-manager.io, resource: certificates }\n"
+  justification: "The certificate behind the payments ingress may have expired; reading Certificates would confirm it."
+  sessionId: ses_01JCX3M8Q4N6V2K9T7B5R1D0FA
+  runId: run_01JCX3P2H8W4E6Y1U3I5O7L9ZK

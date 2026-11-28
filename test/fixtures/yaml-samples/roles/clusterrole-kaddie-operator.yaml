@@ -1,0 +1,33 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kaddie-operator
+rules:
+  - apiGroups: [kaddie.org]
+    resources: [sreconfigs]
+    verbs: [get, list, watch]
+  - apiGroups: [kaddie.org]
+    resources: [sreproposals]
+    verbs: [get, list, watch]
+  - apiGroups: [kaddie.org]
+    resources: [sretriggers]
+    verbs: [get, list, watch]
+  - apiGroups: [kaddie.org]
+    resources: [sreproposals/status]
+    verbs: [update, patch]
+  - apiGroups: [kaddie.org]
+    resources: [sresessions]
+    verbs: [create, get, list]
+  - apiGroups: [kaddie.org]
+    resources: [sreconfigs]
+    verbs: [create, update, patch]
+  - apiGroups: [kaddie.org]
+    resources: [sretriggers]
+    verbs: [create, update, patch, delete]
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [clusterroles]
+    resourceNames: [kaddie-agent-read]
+    verbs: [get, update, patch]
+  - apiGroups: [kaddie.org]
+    resources: [sresessions]
+    verbs: [delete]

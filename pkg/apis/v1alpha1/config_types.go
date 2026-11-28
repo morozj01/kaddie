@@ -1,0 +1,173 @@
+package v1alpha1
+
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// Mode is the kill switch. A missing SREConfig means Halted.
+// +kubebuilder:validation:Enum=Enabled;ExecutionPaused;Halted
+type Mode string
+
+const (
+	// ModeEnabled lets everything run.
+	ModeEnabled Mode = "Enabled"
+	// ModeExecutionPaused stops executors; the agent may still propose.
+	ModeExecutionPaused Mode = "ExecutionPaused"
+	// ModeHalted stops everything except reading history.
+	ModeHalted Mode = "Halted"
+)
+
+// SREConfigName is the only name the CRD schema admits.
+const SREConfigName = "default"
+
+// The metadata.name restriction to "default" is added to the generated CRD by
+// hack/crdpost, because controller-gen can't put a schema on metadata. (Kept
+// out of the doc comment below, which becomes the CRD's description.)
+
+// SREConfig is the kill switch and the system settings, in one cluster-scoped
+// singleton named "default". The chart never creates it: a fresh install has
+// none, which every component treats as Halted.
+//
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Cluster
+// +kubebuilder:printcolumn:name=Mode,type=string,JSONPath=`.spec.mode`
+// +kubebuilder:printcolumn:name=TriggersPaused,type=boolean,JSONPath=`.spec.triggersPaused`
+// +kubebuilder:printcolumn:name=ChangedBy,type=string,JSONPath=`.spec.changedBy`
+type SREConfig struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// Spec is the kill switch and settings.
+	// +kubebuilder:default={}
+	// +optional
+	Spec SREConfigSpec `json:"spec,omitempty"`
+}
+
+// SREConfigSpec holds the kill-switch fields first, then the settings.
+// Declarative management of settings must omit mode, reason and changedBy.
+type SREConfigSpec struct {
+	// Mode is the kill switch; defaults to Halted so a bare object starts safe.
+	// +kubebuilder:default=Halted
+	// +optional
+	Mode Mode `json:"mode,omitempty"`
+	// Reason is free text for the current mode.
+	// +kubebuilder:validation:MaxLength=1024
+	// +optional
+	Reason string `json:"reason,omitempty"`
+	// ChangedBy is who last changed the mode; kaddie-ui sets it to the viewer.
+	// +kubebuilder:validation:MaxLength=253
+	// +optional
+	ChangedBy string `json:"changedBy,omitempty"`
+	// TriggersPaused stops automatic sessions only.
+	// +kubebuilder:default=false
+	// +optional
+	TriggersPaused bool `json:"triggersPaused,omitempty"`
+	// API holds the direct API write path settings.
+	// +kubebuilder:default={}
+	// +optional
+	API APISettings `json:"api,omitempty"`
+	// MaxItems below keeps the url rule's estimated CEL cost within budget: on
+	// an unbounded list a 1.28 API server rejects the CRD. (Kept out of the
+	// field's doc comment, which becomes its CRD description.)
+
+	// Repositories are the git repositories registered for the GitOps path.
+	// +kubebuilder:validation:MaxItems=64
+	// +kubebuilder:default={}
+	// +listType=map
+	// +listMapKey=name
+	// +optional
+	Repositories []Repository `json:"repositories,omitempty"`
+}
+
+// APISettings configures the direct API write path.
+type APISettings struct {
+	// Enabled says whether Api proposals may be created; the harness re-reads
+	// it before creating one. Read-role patches are allowed either way.
+	// +kubebuilder:default=true
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// Repository is one registered git repository.
+type Repository struct {
+	// Name is the key Git proposals refer to.
+	// +kubebuilder:validation:MaxLength=63
+	Name string `json:"name"`
+	// URL is an https or ssh URL with no embedded credentials.
+	// +kubebuilder:validation:MaxLength=1024
+	// +kubebuilder:validation:XValidation:rule="!self.contains('@') || self.startsWith('ssh://') || self.startsWith('git@')",message="credentials must not appear in the URL"
+	URL string `json:"url"`
+	// TargetBranch is the branch PRs target.
+	// +kubebuilder:validation:MaxLength=255
+	TargetBranch string `json:"targetBranch"`
+	// ProtectedPaths are a hard blacklist: globs the agent can't read or
+	// propose edits to. Everything else is readable and editable.
+	// +kubebuilder:default={}
+	// +optional
+	ProtectedPaths []string `json:"protectedPaths,omitempty"`
+	// PR says how pull requests are opened.
+	// +kubebuilder:default={}
+	// +optional
+	PR PRSettings `json:"pr,omitempty"`
+	// DeployPaths are the paths in this repository deployed to this cluster.
+	// +kubebuilder:default={}
+	// +optional
+	DeployPaths []DeployPath `json:"deployPaths,omitempty"`
+}
+
+// PRSettings configures how kaddie-git-writer opens pull requests.
+type PRSettings struct {
+	// BranchPrefix is the fixed prefix of every pushed branch.
+	// +kubebuilder:validation:Enum=kaddie/
+	// +kubebuilder:default=kaddie/
+	// +optional
+	BranchPrefix string `json:"branchPrefix,omitempty"`
+	// MinRequiredApprovals is how many approvals preflight requires branch
+	// protection to demand.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:default=1
+	// +optional
+	MinRequiredApprovals *int64 `json:"minRequiredApprovals,omitempty"`
+	// Labels are added to every PR.
+	// +kubebuilder:default={}
+	// +optional
+	Labels []string `json:"labels,omitempty"`
+	// IncludeJustification says whether the justification goes into the PR body.
+	// +kubebuilder:default=true
+	// +optional
+	IncludeJustification *bool `json:"includeJustification,omitempty"`
+	// Attestations are host settings an operator attests to.
+	// +kubebuilder:default={}
+	// +optional
+	Attestations []string `json:"attestations,omitempty"`
+}
+
+// DeployPath is a path in the repository deployed to this cluster. It
+// follows the repository's targetBranch.
+type DeployPath struct {
+	// Name is shown to reviewers and the agent.
+	Name string `json:"name"`
+	// Path is the repository path it consumes; kaddie-renderer runs the tool
+	// from inside it.
+	Path string `json:"path"`
+	// Tool is how kaddie-renderer renders the path.
+	Tool RenderTool `json:"tool"`
+	// Namespace is the namespace for rendered objects that have none; also
+	// helm template's --namespace.
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+	// ExtraArgs are every tool-specific flag for helm template or kubectl
+	// kustomize, passed as separate arguments, never through a shell.
+	// +kubebuilder:validation:MaxItems=64
+	// +kubebuilder:default={}
+	// +optional
+	ExtraArgs []string `json:"extraArgs,omitempty"`
+}
+
+// SREConfigList is a list of SREConfig.
+// +kubebuilder:object:root=true
+type SREConfigList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []SREConfig `json:"items"`
+}

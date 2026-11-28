@@ -1,0 +1,35 @@
+{{- /*
+The agent's two roles, held for it by kaddie-tools (base §5.1).
+
+kaddie-agent-read, cluster ownership mode (base §5.4.2): rendered on first
+install only. When the role already exists the chart leaves it out of the
+manifest; helm.sh/resource-policy: keep stops Helm deleting it, so rules
+operators add later survive every upgrade and uninstall (T27). NOTES.txt
+lists new shipped entries for the installer to apply by hand.
+*/}}
+{{- $existing := lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" "kaddie-agent-read" }}
+{{- if not $existing }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kaddie-agent-read
+  labels:
+    {{- include "kaddie.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+rules:
+  {{- include "kaddie.rules.agent-read-allowlist" . | nindent 2 }}
+  {{- include "kaddie.rules.agent-read-extra" . | nindent 2 }}
+{{- end }}
+---
+# Kept apart from kaddie-tools' ClusterRole on purpose: deleting its
+# RoleBinding (break-glass L2) stops all proposing alone.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kaddie-agent-propose
+  namespace: {{ include "kaddie.namespace" . }}
+  labels:
+    {{- include "kaddie.labels" . | nindent 4 }}
+rules:
+  {{- include "kaddie.rules.proposal-create" . | nindent 2 }}

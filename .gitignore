@@ -1,0 +1,18 @@
+# Local tool binaries installed by the Makefile.
+/bin/
+# Build output.
+/dist/
+# Test artefacts.
+/test/infra/.generated/
+/test/e2e/.artifacts/
+*.out
+*.test
+coverage.*
+# Editors and OS.
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+# Web
+/web/node_modules/
+/web/dist/

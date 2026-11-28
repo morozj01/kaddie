@@ -1,0 +1,67 @@
+apiVersion: kaddie.org/v1alpha1
+kind: SREProposal
+metadata:
+  name: proposal-k3m9q
+  generateName: proposal-
+  namespace: kaddie-system
+  uid: 0b6e4f2a-9d1c-4e7b-8a35-c2f1d9e07b44
+spec:
+  type: Git
+  git:
+    repository: platform-config
+    baseSHA: 3f9c2e1b7a4d6c8e0f2a4b6c8d0e2f4a6b8c0d2e
+    edits:
+      - path: apps/payments/overlays/prod/kustomization.yaml
+        operation: Edit
+        oldText: "    value: 3\n"
+        newText: "    value: 6\n"
+      - path: apps/payments/overlays/prod/hpa-patch.yaml
+        operation: Create
+        content: "apiVersion: autoscaling/v2\nkind: HorizontalPodAutoscaler\nmetadata:\n  name: api\nspec:\n  maxReplicas: 12\n"
+  justification: "Doubling replicas and raising the HPA ceiling absorbs the traffic pattern seen since Monday."
+  evidence:
+    - { apiGroup: apps, kind: Deployment, namespace: payments, name: api }
+  sessionId: ses_01JCX9A1B2C3D4E5F6G7H8J9KM
+  runId: run_01JCX9B2C3D4E5F6G7H8J9K0LN
+status:
+  render:
+    phase: Rendered
+    headTreeSHA: e2f0b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f1e4
+    rendererVersion: "1.4.0 (helm 3.16.2, kustomize 5.4.3)"
+    renderedAt: "2026-11-11T09:01:30Z"
+    targets:
+      - { name: payments-prod, tool: Kustomize, namespace: payments, rendered: true, requestIndexes: [0, 1] }
+    requests:
+      - verb: patch
+        apiVersion: apps/v1
+        resource: deployments
+        namespace: payments
+        name: api
+        patchType: application/merge-patch+json
+        body: '{"spec":{"replicas":6}}'
+      - verb: patch
+        apiVersion: autoscaling/v2
+        resource: horizontalpodautoscalers
+        namespace: payments
+        name: api
+        patchType: application/merge-patch+json
+        body: '{"spec":{"maxReplicas":12}}'
+  approval:
+    phase: ReadyForPR
+    actedBy: alice@example.com
+    actedAt: "2026-11-11T09:05:12Z"
+    headTreeSHA: e2f0b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f1e4
+  pr:
+    url: https://git.example.com/org/platform-config/pull/123
+    number: 123
+    branch: kaddie/0b6e4f2a-9d1c-4e7b-8a35-c2f1d9e07b44
+    headSHA: 9a1d4c7e2b5f8a0d3c6e9b1f4a7d0c3e6b9f2a5d
+    baseSHA: 3f9c2e1b7a4d6c8e0f2a4b6c8d0e2f4a6b8c0d2e
+    headTreeSHA: e2f0b3d6a9c2f5e8b1d4a7c0f3e6b9d2a5c8f1e4
+    state: Merged
+    closedReason: ""
+    mergeCommitSHA: 5b8e1d4a7c0f3e6b9d2a5c8f1e4b7d0a3c6f9e2b
+    mergedBy: carol
+    approvedBy: [dave, erin]
+    targets:
+      - { name: payments-prod, namespace: payments }

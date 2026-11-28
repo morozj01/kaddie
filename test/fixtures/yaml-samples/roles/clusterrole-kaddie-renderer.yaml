@@ -1,0 +1,21 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kaddie-renderer
+rules:
+  - apiGroups: [kaddie.org]
+    resources: [sreconfigs]
+    verbs: [get, list, watch]
+  - apiGroups: [kaddie.org]
+    resources: [sreproposals]
+    verbs: [get, list, watch]
+  - apiGroups: [kaddie.org]
+    resources: [sreproposals/status]
+    verbs: [update, patch]
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [create]
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    resourceNames: [kaddie-renderer-leader]
+    verbs: [get, update]

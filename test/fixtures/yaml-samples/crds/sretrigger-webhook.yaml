@@ -1,0 +1,19 @@
+apiVersion: kaddie.org/v1alpha1
+kind: SRETrigger
+metadata:
+  name: alertmanager
+spec:
+  mode: Shadow
+  webhook:
+    path: alertmanager
+    auth:
+      type: HMAC
+      secretName: kaddie-webhook-alertmanager
+    when: "payload.status == 'firing' && payload.commonLabels.severity in ['critical', 'warning']"
+    subject: payload.groupKey
+    expireAfter: 24h
+  session:
+    goal: "An alert fired. Confirm it from cluster state and metrics, find the cause and propose a fix if one is safe."
+    resume: None
+  controls:
+    cooldown: 30m
