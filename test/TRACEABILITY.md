@@ -31,9 +31,9 @@ Tasks done: T0.1, T0.2, T0.3, T1.1, T1.2, T1.3, T1.4, T1.5, T1.6
 | T9 | base | A status write by an identity without `update` on `sreproposals/status` → denied by RBAC. | T1.5 | v1 | partial: test/e2e/status_write_test.go:TestT9_GT6_GT40_StatusWrites (D1 firing: T6.11) |
 | T10 | base | The API server rejects synchronously: a bad verb including `update`, a missing name, an oversized body, mor... | T1.1 | v1 | test/envtest/crd_test.go:TestCRD_T10_SynchronousRejections |
 | T11 | base | A proposal created directly, bypassing kaddie-tools, with an invalid JSON body, a `<redacted:` placeholder... | T2.5, T6.5, T6.7 | v1 | unclaimed |
-| T12 | base | For each match field in §4.2 (`apiGroups`, `resources` incl. | T2.1, T5.5 | v1 | unclaimed |
+| T12 | base | For each match field in §4.2 (`apiGroups`, `resources` incl. | T2.1, T5.5 | v1 | partial: pkg/proposal/match_test.go:TestT12_RuleFieldsMatch (kaddie-tools and kaddie-ui parts: T5.5, T6.5; EvaluateStatic vectors: T2.5) |
 | T13 | base | A proposal where only one of several requests matches a protection is high risk, and the reason names that... | T2.5 | v1 | unclaimed |
-| T14 | base | `generateName` creates and requests on the `namespaces` resource itself can't evade `names` or `namespaces`... | T2.1 | v1 | unclaimed |
+| T14 | base | `generateName` creates and requests on the `namespaces` resource itself can't evade `names` or `namespaces`... | T2.1 | v1 | partial: pkg/proposal/match_test.go:TestT14_GenerateNameAndNamespaceResource (engine done here; protection-level vectors: T2.5) |
 | T15 | base | Every protection in §6.3, including Secrets, secret-delivery kinds, reconciler kinds, all RBAC, the system... | T2.5 | v1 | unclaimed |
 | T16 | base | The protections and the match semantics are identical in kaddie-ui and kaddie-tools: the shared conformance... | T2.7, T5.5, T6.5, T10.4 | v1 | unclaimed |
 | T17 | base | Happy path with a multi-request proposal: the audit log shows each write made by the operator's own identit... | T6.6 | v1 | unclaimed |
@@ -57,7 +57,7 @@ Tasks done: T0.1, T0.2, T0.3, T1.1, T1.2, T1.3, T1.4, T1.5, T1.6
 | T35 | base | Adversarial-LLM property test: a mock LLM issues random and adversarial tool calls (unknown tools, malforme... | T6.10 | v1 | unclaimed |
 | T36 | base | Prompt-injection corpus planted in logs and annotations: the same assertions as T35. | T6.10 | v1 | unclaimed |
 | T37 | base | For `create` and each patch type (JSON Patch, JSON merge, strategic merge), a request that changes a protec... | T2.3, T2.4 | v1 | unclaimed |
-| T38 | base | Ancestors and descendants: replacing `spec.template` wholesale is high risk under the rule on `spec.templat... | T2.2 | v1 | unclaimed |
+| T38 | base | Ancestors and descendants: replacing `spec.template` wholesale is high risk under the rule on `spec.templat... | T2.2 | v1 | partial: pkg/proposal/fieldpath/match_test.go:TestT38_AncestorsAndDescendants (schema-backed Subtree match through EvaluateStatic: T2.3, T2.5) |
 | T39 | base | A Deployment patch changing only `spec.replicas` or `resources` isn't flagged; one that also changes `spec.... | T2.3, T2.4 | v1 | unclaimed |
 | T40 | base | A test mutating webhook changes a protected field during the dry run → the client flags the proposal as hig... | T2.6, T6.5 | v1 | unclaimed |
 | T41 | base | Field rules never match `delete`. | T2.3 | v1 | unclaimed |
