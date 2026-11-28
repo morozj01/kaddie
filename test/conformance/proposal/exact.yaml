@@ -249,6 +249,10 @@
     - {reason: WorkloadField, request: 0, field: '**.hostPID'}
     - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
     - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 0, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 0, field: '**.securityContext'}
   exact: []
 
@@ -813,6 +817,10 @@
     - {reason: WorkloadField, request: 0, field: '**.hostPID'}
     - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
     - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 0, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 0, field: '**.securityContext'}
   exact:
     - {reason: WorkloadField, request: 0, field: '**.containers[*].image', source: Request}
@@ -837,6 +845,10 @@
     - {reason: WorkloadField, request: 0, field: '**.hostPID', source: Request}
     - {reason: WorkloadField, request: 0, field: '**.hostIPC', source: Request}
     - {reason: WorkloadField, request: 0, field: '**.nodeName', source: Request}
+    - {reason: WorkloadField, request: 0, field: '**.livenessProbe.exec', source: Request}
+    - {reason: WorkloadField, request: 0, field: '**.readinessProbe.exec', source: Request}
+    - {reason: WorkloadField, request: 0, field: '**.startupProbe.exec', source: Request}
+    - {reason: WorkloadField, request: 0, field: '**.lifecycle', source: Request}
     - {reason: WorkloadField, request: 0, field: '**.securityContext', source: Request}
 
 # The exception holds only for a ClusterRole of rbac.authorization.k8s.io/v1. A dry run that is null, empty, another kind, another apiVersion or has none must not pass for a read-only role just because it holds no violating rule.

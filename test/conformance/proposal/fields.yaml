@@ -173,6 +173,10 @@
     - {reason: WorkloadField, request: 0, field: '**.hostPID'}
     - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
     - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 0, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 0, field: '**.securityContext'}
     - {reason: WorkloadField, request: 1, field: '**.containers[*].image'}
     - {reason: WorkloadField, request: 1, field: '**.initContainers[*].image'}
@@ -196,6 +200,10 @@
     - {reason: WorkloadField, request: 1, field: '**.hostPID'}
     - {reason: WorkloadField, request: 1, field: '**.hostIPC'}
     - {reason: WorkloadField, request: 1, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 1, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 1, field: '**.securityContext'}
     - {reason: WorkloadField, request: 2, field: '**.containers[*].image'}
     - {reason: WorkloadField, request: 2, field: '**.initContainers[*].image'}
@@ -219,6 +227,10 @@
     - {reason: WorkloadField, request: 2, field: '**.hostPID'}
     - {reason: WorkloadField, request: 2, field: '**.hostIPC'}
     - {reason: WorkloadField, request: 2, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 2, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 2, field: '**.securityContext'}
     - {reason: WorkloadField, request: 3, field: '**.containers[*].image'}
     - {reason: WorkloadField, request: 3, field: '**.initContainers[*].image'}
@@ -242,6 +254,10 @@
     - {reason: WorkloadField, request: 3, field: '**.hostPID'}
     - {reason: WorkloadField, request: 3, field: '**.hostIPC'}
     - {reason: WorkloadField, request: 3, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 3, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 3, field: '**.securityContext'}
     - {reason: WorkloadField, request: 4, field: '**.containers[*].image'}
     - {reason: WorkloadField, request: 4, field: '**.initContainers[*].image'}
@@ -265,6 +281,10 @@
     - {reason: WorkloadField, request: 4, field: '**.hostPID'}
     - {reason: WorkloadField, request: 4, field: '**.hostIPC'}
     - {reason: WorkloadField, request: 4, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 4, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 4, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 4, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 4, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 4, field: '**.securityContext'}
 
 # Object metadata can't hold a protected field, so replacing it, whole or in part, isn't flagged.
@@ -314,6 +334,10 @@
     - {reason: WorkloadField, request: 0, field: '**.hostPID'}
     - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
     - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 0, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 0, field: '**.securityContext'}
 
 # Request 0 is beneath env. Requests 1 to 3 replace a list or element that can hold an image, command, args, env, envFrom, volumeMounts and securityContext (the last also named by **.securityContext). Request 4 removes a volumes element, 5 a protected field.
@@ -341,6 +365,10 @@
     - {reason: WorkloadField, request: 1, field: '**.containers[*].volumeMounts'}
     - {reason: WorkloadField, request: 1, field: '**.containers[*].securityContext'}
     - {reason: WorkloadField, request: 1, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 2, field: '**.containers[*].image'}
     - {reason: WorkloadField, request: 2, field: '**.containers[*].command'}
     - {reason: WorkloadField, request: 2, field: '**.containers[*].args'}
@@ -349,6 +377,10 @@
     - {reason: WorkloadField, request: 2, field: '**.containers[*].volumeMounts'}
     - {reason: WorkloadField, request: 2, field: '**.containers[*].securityContext'}
     - {reason: WorkloadField, request: 2, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 3, field: '**.initContainers[*].image'}
     - {reason: WorkloadField, request: 3, field: '**.initContainers[*].command'}
     - {reason: WorkloadField, request: 3, field: '**.initContainers[*].args'}
@@ -357,6 +389,10 @@
     - {reason: WorkloadField, request: 3, field: '**.initContainers[*].volumeMounts'}
     - {reason: WorkloadField, request: 3, field: '**.initContainers[*].securityContext'}
     - {reason: WorkloadField, request: 3, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 3, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 4, field: '**.volumes'}
     - {reason: WorkloadField, request: 5, field: '**.hostNetwork'}
 
@@ -412,6 +448,10 @@
     - {reason: WorkloadField, request: 1, field: '**.containers[*].volumeMounts'}
     - {reason: WorkloadField, request: 1, field: '**.containers[*].securityContext'}
     - {reason: WorkloadField, request: 1, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 2, field: '**.containers[*].image'}
     - {reason: WorkloadField, request: 2, field: '**.containers[*].command'}
     - {reason: WorkloadField, request: 2, field: '**.containers[*].args'}
@@ -420,6 +460,10 @@
     - {reason: WorkloadField, request: 2, field: '**.containers[*].volumeMounts'}
     - {reason: WorkloadField, request: 2, field: '**.containers[*].securityContext'}
     - {reason: WorkloadField, request: 2, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 3, field: '**.containers[*].image'}
     - {reason: WorkloadField, request: 3, field: '**.containers[*].command'}
     - {reason: WorkloadField, request: 3, field: '**.containers[*].args'}
@@ -428,6 +472,10 @@
     - {reason: WorkloadField, request: 3, field: '**.containers[*].volumeMounts'}
     - {reason: WorkloadField, request: 3, field: '**.containers[*].securityContext'}
     - {reason: WorkloadField, request: 3, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 3, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.lifecycle'}
 
 - name: 'T39 strategic merge patch: replicas and resources are not flagged, image and env are'
   tests: [T39]
@@ -587,6 +635,10 @@
     - {reason: WorkloadField, request: 0, field: '**.hostPID'}
     - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
     - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 0, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 0, field: '**.securityContext'}
 
 # An unparseable body changes the root. It can hold every workload field on a workload and none on a ConfigMap.
@@ -625,6 +677,10 @@
     - {reason: WorkloadField, request: 0, field: '**.hostPID'}
     - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
     - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 0, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 0, field: '**.securityContext'}
 
 # The API server decodes a built-in kind into a struct and merges a repeated "spec" into the first, ignoring a null one, so the object keeps the first spec's image and serviceAccountName while a map-based reader sees only the last. A body that repeats a key anywhere is invalid, and unreadable as a body, so it changes the root.
@@ -665,6 +721,10 @@
     - {reason: WorkloadField, request: 0, field: '**.hostPID'}
     - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
     - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 0, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 0, field: '**.securityContext'}
     - {reason: WorkloadField, request: 1, field: '**.containers[*].image'}
     - {reason: WorkloadField, request: 1, field: '**.initContainers[*].image'}
@@ -688,6 +748,10 @@
     - {reason: WorkloadField, request: 1, field: '**.hostPID'}
     - {reason: WorkloadField, request: 1, field: '**.hostIPC'}
     - {reason: WorkloadField, request: 1, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 1, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 1, field: '**.securityContext'}
     - {reason: WorkloadField, request: 2, field: '**.containers[*].image'}
     - {reason: WorkloadField, request: 2, field: '**.initContainers[*].image'}
@@ -711,6 +775,10 @@
     - {reason: WorkloadField, request: 2, field: '**.hostPID'}
     - {reason: WorkloadField, request: 2, field: '**.hostIPC'}
     - {reason: WorkloadField, request: 2, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 2, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 2, field: '**.securityContext'}
 
 # The same inside a patch: a repeated key in a merge patch, a strategic merge patch or a JSON Patch operation is invalid, so the patch changes the root.
@@ -751,6 +819,10 @@
     - {reason: WorkloadField, request: 0, field: '**.hostPID'}
     - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
     - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 0, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 0, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 0, field: '**.securityContext'}
     - {reason: WorkloadField, request: 1, field: '**.containers[*].image'}
     - {reason: WorkloadField, request: 1, field: '**.initContainers[*].image'}
@@ -774,6 +846,10 @@
     - {reason: WorkloadField, request: 1, field: '**.hostPID'}
     - {reason: WorkloadField, request: 1, field: '**.hostIPC'}
     - {reason: WorkloadField, request: 1, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 1, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 1, field: '**.securityContext'}
     - {reason: WorkloadField, request: 2, field: '**.containers[*].image'}
     - {reason: WorkloadField, request: 2, field: '**.initContainers[*].image'}
@@ -797,4 +873,44 @@
     - {reason: WorkloadField, request: 2, field: '**.hostPID'}
     - {reason: WorkloadField, request: 2, field: '**.hostIPC'}
     - {reason: WorkloadField, request: 2, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 2, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.lifecycle'}
     - {reason: WorkloadField, request: 2, field: '**.securityContext'}
+
+# The commands exec probes and lifecycle hooks run inside a container are protected; probe thresholds, timing and httpGet probes stay proposable.
+- name: 'T15 exec probes and lifecycle hooks are protected, probe thresholds are not'
+  tests: [T15, T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"template":{"spec":{"containers":[{"name":"api","livenessProbe":{"exec":{"command":["sh","-c","true"]}}}]}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"template":{"spec":{"containers":[{"name":"api","readinessProbe":{"exec":{"command":["sh","-c","true"]}}}]}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"add","path":"/spec/template/spec/containers/0/startupProbe","value":{"exec":{"command":["sh","-c","true"]}}}]'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"template":{"spec":{"containers":[{"name":"api","lifecycle":{"postStart":{"exec":{"command":["sh","-c","true"]}}}}]}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: statefulsets, namespace: payments, name: db, patchType: application/merge-patch+json, body: '{"spec":{"template":{"spec":{"initContainers":[{"name":"init","image":"busybox","lifecycle":{"preStop":{"exec":{"command":["sh"]}}}}]}}}}'}
+          - {verb: patch, apiVersion: batch/v1, resource: cronjobs, namespace: payments, name: report, patchType: application/strategic-merge-patch+json, body: '{"spec":{"jobTemplate":{"spec":{"template":{"spec":{"containers":[{"name":"r","livenessProbe":{"exec":{"command":["sh"]}}}]}}}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"template":{"spec":{"containers":[{"name":"api","livenessProbe":{"periodSeconds":20,"failureThreshold":5,"timeoutSeconds":3}}]}}}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/httpGet/path","value":"/healthz"}]'}
+      justification: A test proposal.
+  static:
+    - {reason: WorkloadField, request: 0, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 1, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 2, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 3, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 4, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 4, field: '**.livenessProbe.exec'}
+    - {reason: WorkloadField, request: 4, field: '**.readinessProbe.exec'}
+    - {reason: WorkloadField, request: 4, field: '**.startupProbe.exec'}
+    - {reason: WorkloadField, request: 4, field: '**.lifecycle'}
+    - {reason: WorkloadField, request: 4, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 5, field: '**.livenessProbe.exec'}

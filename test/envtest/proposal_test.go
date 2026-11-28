@@ -77,6 +77,16 @@ func TestProposal_ExactOnRealDryRuns(t *testing.T) {
 			wantExact: []string{"WorkloadField **.containers[*].image Request"},
 		},
 		{
+			name:      "an exec liveness probe added by strategic merge patch",
+			req:       patch(types.StrategicMergePatchType, `{"spec":{"template":{"spec":{"containers":[{"name":"api","livenessProbe":{"exec":{"command":["sh","-c","true"]}}}]}}}}`),
+			wantExact: []string{"WorkloadField **.livenessProbe.exec Request"},
+		},
+		{
+			name:      "a postStart hook added by strategic merge patch",
+			req:       patch(types.StrategicMergePatchType, `{"spec":{"template":{"spec":{"containers":[{"name":"api","lifecycle":{"postStart":{"exec":{"command":["sh","-c","true"]}}}}]}}}}`),
+			wantExact: []string{"WorkloadField **.lifecycle Request"},
+		},
+		{
 			name: "the template replaced with itself plus a label, by JSON Patch",
 			req:  patch(types.JSONPatchType, relabelled),
 		},

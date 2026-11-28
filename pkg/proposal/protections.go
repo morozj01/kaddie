@@ -142,7 +142,7 @@ var catalogue = []Protection{
 	{
 		Reason:      WorkloadField,
 		Group:       groupCode,
-		Summary:     "a change to a workload's images, commands, arguments, environment, volumes, ServiceAccount, host access, node or security context",
+		Summary:     "a change to a workload's images, commands (including exec probes and lifecycle hooks), arguments, environment, volumes, ServiceAccount, host access, node or security context",
 		Explanation: "The request changes what code a workload runs, or as which identity, or with what access to the node. A change here can run attacker-chosen code with the workload's permissions.",
 		Rules: []Rule{
 			{APIGroups: []string{""}, Resources: []string{"pods", "replicationcontrollers"}, Fields: workloadFields},
@@ -204,6 +204,10 @@ var workloadFields = []fieldpath.Path{
 	fieldpath.MustParse("**.hostPID"),
 	fieldpath.MustParse("**.hostIPC"),
 	fieldpath.MustParse("**.nodeName"),
+	fieldpath.MustParse("**.livenessProbe.exec"),
+	fieldpath.MustParse("**.readinessProbe.exec"),
+	fieldpath.MustParse("**.startupProbe.exec"),
+	fieldpath.MustParse("**.lifecycle"),
 	fieldpath.MustParse("**.securityContext"),
 }
 
