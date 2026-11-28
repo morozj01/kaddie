@@ -11,6 +11,7 @@ import (
 
 	"github.com/morozj01/kaddie/pkg/apis/v1alpha1"
 	"github.com/morozj01/kaddie/pkg/proposal/fieldpath"
+	"github.com/morozj01/kaddie/pkg/proposal/internal/jsondoc"
 	"github.com/morozj01/kaddie/pkg/proposal/schema"
 )
 
@@ -33,11 +34,13 @@ import (
 //     the enclosing object a Subtree Change; $setElementOrder/<f> and
 //     $deleteFromPrimitiveList/<f> make field f one.
 //
-// A body Static can't parse as its patch type changes the root, as a Subtree
-// Change with an empty Path. A strategic merge patch element that holds only
-// its merge key, or an object that is empty, is a leaf Change at that element
-// or object, since it still adds one. A strategic merge list element has no
-// known index, so its segment is {Elem: true} with an empty Key.
+// A body Static can't parse as its patch type, or that repeats an object key
+// anywhere (the server and a map-based reader would keep different values),
+// changes the root, as a Subtree Change with an empty Path. A strategic merge
+// patch element that holds only its merge key, or an object that is empty, is
+// a leaf Change at that element or object, since it still adds one. A
+// strategic merge list element has no known index, so its segment is
+// {Elem: true} with an empty Key.
 //
 // The result holds one Change per path, a Subtree Change winning over a leaf
 // at the same path, in the order found: map keys sorted, list elements and
@@ -48,7 +51,7 @@ func Static(verb v1alpha1.RequestVerb, pt v1alpha1.PatchType, body []byte, root 
 	case v1alpha1.RequestVerbDelete:
 		return nil
 	case v1alpha1.RequestVerbCreate:
-		doc, err := decode(body)
+		doc, err := jsondoc.Decode(body)
 		obj, ok := doc.(map[string]any)
 		if err != nil || !ok {
 			return rootChange()
@@ -68,11 +71,11 @@ func Static(verb v1alpha1.RequestVerb, pt v1alpha1.PatchType, body []byte, root 
 // removed and changed scalars, empty objects and empty lists, list elements
 // compared by index. A removed object or list contributes every leaf it held.
 func Diff(before, after []byte) ([]fieldpath.Change, error) {
-	a, err := decode(before)
+	a, err := jsondoc.Decode(before)
 	if err != nil {
 		return nil, fmt.Errorf("before: %w", err)
 	}
-	b, err := decode(after)
+	b, err := jsondoc.Decode(after)
 	if err != nil {
 		return nil, fmt.Errorf("after: %w", err)
 	}

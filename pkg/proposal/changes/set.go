@@ -1,10 +1,6 @@
 package changes
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
-	"io"
 	"maps"
 	"slices"
 	"strconv"
@@ -162,18 +158,4 @@ func withIndex(path []fieldpath.Segment, i int) []fieldpath.Segment {
 
 func withElem(path []fieldpath.Segment) []fieldpath.Segment {
 	return append(slices.Clip(path), fieldpath.Segment{Elem: true})
-}
-
-// decode reads one JSON document, keeping numbers as written.
-func decode(b []byte) (any, error) {
-	dec := json.NewDecoder(bytes.NewReader(b))
-	dec.UseNumber()
-	var v any
-	if err := dec.Decode(&v); err != nil {
-		return nil, err
-	}
-	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
-		return nil, errors.New("trailing data after the JSON document")
-	}
-	return v, nil
 }

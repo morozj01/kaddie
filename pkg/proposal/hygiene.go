@@ -1,11 +1,11 @@
 package proposal
 
 import (
-	"encoding/json"
 	"strings"
 	"unicode"
 
 	"github.com/morozj01/kaddie/pkg/apis/v1alpha1"
+	"github.com/morozj01/kaddie/pkg/proposal/internal/jsondoc"
 )
 
 // redactedMarker starts every placeholder the redactor writes in place of a
@@ -13,17 +13,18 @@ import (
 const redactedMarker = "<redacted:"
 
 const (
-	invalidJSONExplanation = "The body is not valid JSON of the kind this verb and patch type require. The API server would reject it, or an executor could read it differently from what is shown."
+	invalidJSONExplanation = "The body is not valid JSON of the kind this verb and patch type require, or an object in it repeats a key. The API server would reject it, or it and an executor could read it differently from what is shown."
 	redactedExplanation    = "The body contains a redaction placeholder. If the request were executed, the placeholder text would be written in place of the real value."
 	invisibleExplanation   = "The body contains an invisible or control character, such as a zero-width space or a byte-order mark. It can make a name or value look different from what it is."
 )
 
-// hygieneFindings checks one request's body (base §6.2): its JSON, redaction
-// placeholders and invisible characters. Each reason is reported at most once
+// hygieneFindings checks one request's body (base §6.2): its JSON, where an
+// object that repeats a key is invalid, redaction placeholders and invisible
+// characters. Each reason is reported at most once
 // per request, in that order. It runs on every request, whatever the target.
 func hygieneFindings(index int, req v1alpha1.RequestFields) []Finding {
-	var doc any
-	decoded := json.Unmarshal([]byte(req.Body), &doc) == nil
+	doc, err := jsondoc.Decode([]byte(req.Body))
+	decoded := err == nil
 
 	var out []Finding
 	add := func(reason Reason, explanation string) {
@@ -36,11 +37,11 @@ func hygieneFindings(index int, req v1alpha1.RequestFields) []Finding {
 		add(InvalidJSON, invalidJSONExplanation)
 	}
 	redacted, invisible := false, strings.ContainsFunc(req.Body, isInvisible)
-	if decoded {
-		walkStrings(doc, func(s string) {
+	if strs, err := jsondoc.Strings([]byte(req.Body)); err == nil {
+		for _, s := range strs {
 			redacted = redacted || strings.Contains(s, redactedMarker)
 			invisible = invisible || strings.ContainsFunc(s, isInvisible)
-		})
+		}
 	}
 	if redacted {
 		add(RedactedPlaceholder, redactedExplanation)
@@ -123,21 +124,4 @@ func pointerField(op map[string]any, key string) bool {
 		}
 	}
 	return true
-}
-
-// walkStrings calls f with every key and string value in a decoded document.
-func walkStrings(v any, f func(string)) {
-	switch v := v.(type) {
-	case string:
-		f(v)
-	case []any:
-		for _, e := range v {
-			walkStrings(e, f)
-		}
-	case map[string]any:
-		for k, e := range v {
-			f(k)
-			walkStrings(e, f)
-		}
-	}
 }

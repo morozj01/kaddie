@@ -5,13 +5,13 @@
 package proposal
 
 import (
-	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
 
 	"github.com/morozj01/kaddie/pkg/apis/v1alpha1"
 	"github.com/morozj01/kaddie/pkg/proposal/fieldpath"
+	"github.com/morozj01/kaddie/pkg/proposal/internal/jsondoc"
 )
 
 // Rule is the fixed rule shape of base §4.2. A request matches a rule when
@@ -52,7 +52,8 @@ type target struct {
 
 // targetOf resolves what req addresses. It fails when apiVersion is neither
 // v1 (the core group) nor group/version. A create body that isn't a JSON
-// object contributes no names or namespaces; body hygiene flags it elsewhere.
+// object, or that repeats a key, contributes no names or namespaces; body
+// hygiene flags it elsewhere.
 func targetOf(req v1alpha1.RequestFields) (target, error) {
 	group, err := groupOf(req.APIVersion)
 	if err != nil {
@@ -73,8 +74,8 @@ func targetOf(req v1alpha1.RequestFields) (target, error) {
 	add(&names, req.Name)
 	add(&namespaces, req.Namespace)
 	if t.verb == v1alpha1.RequestVerbCreate {
-		var body map[string]any
-		if json.Unmarshal([]byte(req.Body), &body) == nil {
+		if doc, err := jsondoc.Decode([]byte(req.Body)); err == nil {
+			body, _ := doc.(map[string]any)
 			meta, _ := body["metadata"].(map[string]any)
 			name, _ := meta["name"].(string)
 			generateName, _ := meta["generateName"].(string)

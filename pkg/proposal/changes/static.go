@@ -7,6 +7,7 @@ import (
 
 	"github.com/morozj01/kaddie/pkg/apis/v1alpha1"
 	"github.com/morozj01/kaddie/pkg/proposal/fieldpath"
+	"github.com/morozj01/kaddie/pkg/proposal/internal/jsondoc"
 	"github.com/morozj01/kaddie/pkg/proposal/schema"
 )
 
@@ -18,7 +19,7 @@ const (
 // staticPatch adds the changes of a patch body and reports whether the body
 // parsed as its patch type.
 func staticPatch(s *changeSet, pt v1alpha1.PatchType, body []byte, root schema.Node) bool {
-	doc, err := decode(body)
+	doc, err := jsondoc.Decode(body)
 	if err != nil {
 		return false
 	}

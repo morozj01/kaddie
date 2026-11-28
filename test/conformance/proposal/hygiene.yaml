@@ -273,3 +273,47 @@
           - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: "{\u000A  \"data\": {\u000A    \"a\": \"b\"\u000A  }\u000A}"}
       justification: A test proposal.
   static: []
+
+# The API server merges a repeated key of a built-in kind into the first, and a map-based reader keeps the last, so the body can mean two things. A repeated key at any depth, spelled out or escaped, in any verb's body, is invalid.
+- name: 'InvalidJSON: an object that repeats a key'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"data":{"a":"1"},"data":{"b":"2"}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"data":{"a":"1","a":"2"}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"data":{"a":"1"},"data":null}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"data":{"a":"1"},"d\u0061ta":{"b":"2"}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/merge-patch+json, body: '{"data":{"a":"1","a":"2"}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/strategic-merge-patch+json, body: '{"data":{"a":"1"},"data":{"b":"2"}}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"add","path":"/data/a","value":"1","op":"remove"}]'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"add","path":"/data","value":{"a":1,"a":2}}]'}
+          - {verb: delete, apiVersion: v1, resource: configmaps, namespace: payments, name: c, body: '{"gracePeriodSeconds":0,"gracePeriodSeconds":30}'}
+      justification: A test proposal.
+  static:
+    - {reason: InvalidJSON, request: 0}
+    - {reason: InvalidJSON, request: 1}
+    - {reason: InvalidJSON, request: 2}
+    - {reason: InvalidJSON, request: 3}
+    - {reason: InvalidJSON, request: 4}
+    - {reason: InvalidJSON, request: 5}
+    - {reason: InvalidJSON, request: 6}
+    - {reason: InvalidJSON, request: 7}
+    - {reason: InvalidJSON, request: 8}
+
+# Keys are compared exactly: the same key in sibling objects or list elements, or differing only in case, isn't repeated.
+- name: 'InvalidJSON near miss: the same key in different objects is not a repeated key'
+  tests: [T11]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"a":{"x":1},"b":{"x":2}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"data":{"k":"1","K":"2"}}'}
+          - {verb: create, apiVersion: v1, resource: configmaps, namespace: payments, body: '{"items":[{"n":1},{"n":2}]}'}
+          - {verb: patch, apiVersion: v1, resource: configmaps, namespace: payments, name: c, patchType: application/json-patch+json, body: '[{"op":"add","path":"/data/a","value":"1"},{"op":"add","path":"/data/b","value":"2"}]'}
+      justification: A test proposal.
+  static: []

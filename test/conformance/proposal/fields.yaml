@@ -626,3 +626,175 @@
     - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
     - {reason: WorkloadField, request: 0, field: '**.nodeName'}
     - {reason: WorkloadField, request: 0, field: '**.securityContext'}
+
+# The API server decodes a built-in kind into a struct and merges a repeated "spec" into the first, ignoring a null one, so the object keeps the first spec's image and serviceAccountName while a map-based reader sees only the last. A body that repeats a key anywhere is invalid, and unreadable as a body, so it changes the root.
+- name: 'T11 a create whose body repeats a key can hold every workload field'
+  tests: [T11, T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: create, apiVersion: v1, resource: pods, namespace: payments, body: '{"apiVersion":"v1","kind":"Pod","metadata":{"name":"p","namespace":"payments"},"spec":{"containers":[{"name":"a","image":"evil.example/x:1"}]},"spec":{"restartPolicy":"Always"}}'}
+          - {verb: create, apiVersion: v1, resource: pods, namespace: payments, body: '{"apiVersion":"v1","kind":"Pod","metadata":{"name":"p","namespace":"payments"},"spec":{"containers":[{"name":"a","image":"evil.example/x:1"}]},"spec":null}'}
+          - {verb: create, apiVersion: apps/v1, resource: deployments, namespace: payments, body: '{"metadata":{"name":"d"},"spec":{"selector":{"matchLabels":{"app":"d"}},"template":{"spec":{"serviceAccountName":"admin","containers":[{"name":"a","image":"evil.example/x:1"}]}},"template":{"metadata":{"labels":{"app":"d"}}}}}'}
+      justification: A test proposal.
+  static:
+    - {reason: InvalidJSON, request: 0}
+    - {reason: InvalidJSON, request: 1}
+    - {reason: InvalidJSON, request: 2}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.volumes'}
+    - {reason: WorkloadField, request: 0, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 0, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 0, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 0, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 0, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 1, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.volumes'}
+    - {reason: WorkloadField, request: 1, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 1, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 1, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 1, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 1, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 1, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 1, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 2, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.volumes'}
+    - {reason: WorkloadField, request: 2, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 2, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 2, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 2, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 2, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 2, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 2, field: '**.securityContext'}
+
+# The same inside a patch: a repeated key in a merge patch, a strategic merge patch or a JSON Patch operation is invalid, so the patch changes the root.
+- name: 'T11 a patch whose body repeats a key can hold every workload field'
+  tests: [T11, T37]
+  proposal:
+    spec:
+      type: Api
+      api:
+        requests:
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/merge-patch+json, body: '{"spec":{"replicas":3},"spec":{"paused":false}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/strategic-merge-patch+json, body: '{"spec":{"replicas":3,"replicas":4}}'}
+          - {verb: patch, apiVersion: apps/v1, resource: deployments, namespace: payments, name: api, patchType: application/json-patch+json, body: '[{"op":"replace","path":"/spec/replicas","value":3,"path":"/spec/template/spec/serviceAccountName"}]'}
+      justification: A test proposal.
+  static:
+    - {reason: InvalidJSON, request: 0}
+    - {reason: InvalidJSON, request: 1}
+    - {reason: InvalidJSON, request: 2}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 0, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 0, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 0, field: '**.volumes'}
+    - {reason: WorkloadField, request: 0, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 0, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 0, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 0, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 0, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 0, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 0, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 1, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 1, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 1, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 1, field: '**.volumes'}
+    - {reason: WorkloadField, request: 1, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 1, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 1, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 1, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 1, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 1, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 1, field: '**.securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].image'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].image'}
+    - {reason: WorkloadField, request: 2, field: '**.ephemeralContainers[*]'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].command'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].args'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].env'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].envFrom'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 2, field: '**.containers[*].securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].command'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].args'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].env'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].envFrom'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].volumeMounts'}
+    - {reason: WorkloadField, request: 2, field: '**.initContainers[*].securityContext'}
+    - {reason: WorkloadField, request: 2, field: '**.volumes'}
+    - {reason: WorkloadField, request: 2, field: '**.serviceAccountName'}
+    - {reason: WorkloadField, request: 2, field: '**.automountServiceAccountToken'}
+    - {reason: WorkloadField, request: 2, field: '**.hostNetwork'}
+    - {reason: WorkloadField, request: 2, field: '**.hostPID'}
+    - {reason: WorkloadField, request: 2, field: '**.hostIPC'}
+    - {reason: WorkloadField, request: 2, field: '**.nodeName'}
+    - {reason: WorkloadField, request: 2, field: '**.securityContext'}
